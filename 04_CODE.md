@@ -2,7 +2,7 @@
 
 # Claude Code CLI
 
-> **知識截止日期：** 2026 年 4 月  
+> **知識截止日期：** 2026-04-15  
 > 官方文件：[code.claude.com/docs](https://code.claude.com/docs)
 
 ---
@@ -692,14 +692,15 @@ claude agents        # CLI 列出所有 subagent（不啟動互動 session）
 
 Claude Code 提供三種排程方式，適合不同使用情境：
 
-| | `/loop` | Desktop 本機排程 | `/schedule`（雲端） |
+| | `/loop` | Desktop 本機排程 | `/schedule` Routine（雲端） |
 |---|---|---|---|
 | **執行位置** | 本機，session 內 | 本機，Desktop app | Anthropic 雲端 |
 | **持久化** | ✗（關 session 消失） | △（Desktop 需開著） | ✓（關機也能執行） |
+| **Trigger 類型** | 時間 | 時間 | 時間 / API / GitHub 事件 |
 | **最小間隔** | 1 分鐘 | 1 分鐘 | 1 小時 |
 | **到期限制** | 3 天自動刪除 | 補跑（往回查 7 天） | 無 |
 | **本機檔案存取** | ✓ | ✓ | ✗（僅限 GitHub repo） |
-| **方案需求** | 所有方案 | 所有方案 | Pro 以上 |
+| **方案需求** | 所有方案 | 所有方案 | Pro 以上（每日 5/15/25 run 上限） |
 
 ### /loop
 
@@ -755,18 +756,149 @@ Claude Code 提供三種排程方式，適合不同使用情境：
 系統休眠恢復後會補跑錯過的任務（往回查最多 7 天）。  
 適合需要本機資源（SQLite、自訂 MCP）的長期自動化任務。
 
-### /schedule（雲端）
+### /schedule（Routines，雲端）
 
-由 Anthropic 雲端執行，不依賴你的電腦是否開機。
+> **狀態：** Research Preview（2026-04-14 推出）  
+> **方案：** Pro / Max / Team / Enterprise（需啟用 Claude Code on the Web）  
+> **入口：** [claude.ai/code/routines](https://claude.ai/code/routines)、CLI `/schedule`、Claude Desktop「New task → New remote task」
+
+**Routine** 是一個儲存在 claude.ai 帳號底下的 Claude Code 自動化設定——包含一段 prompt、一或多個 GitHub repo、cloud environment、MCP connectors，以及一個以上的 trigger。設定完成後就在 Anthropic 的雲端 VM 上自動執行，不依賴你的電腦是否開機。
+
+和本頁前面幾種排程的差異：
+
+| 特性 | `/loop` | Desktop 本機排程 | **Routine（`/schedule`）** |
+|---|---|---|---|
+| 執行位置 | 本機 session 內 | 本機 Desktop app | Anthropic 雲端 VM |
+| 本機檔案存取 | ✓ | ✓ | ✗（僅 GitHub repo） |
+| 持久化 | ✗ | 需 Desktop 開著 | ✓（完全無人值守） |
+| Trigger 類型 | 時間 | 時間 | **時間 / API / GitHub 事件** |
+| 每次 run | 延續 session | 延續 session | 全新獨立 session，prompt 必須自給自足 |
+
+每個 routine 可同時綁多種 trigger（例：每晚跑一次 + PR 開啟時跑 + CI 結束時從 API 呼叫），觸發後各自起一個獨立的 cloud session，可在 claude.ai 側邊欄看到該 session 的實際執行過程、diff，並從中直接開 PR。
+
+#### Trigger：Schedule（時間）
+
+Preset：hourly、daily、weekdays、weekly。時間以**你的本地時區**輸入，系統自動換算後以牆鐘時間執行（不受雲端機房所在地影響）。每個 routine 有固定的 stagger 偏移，實際開跑時間可能比設定時間晚幾分鐘。
+
+需要自訂 cron（例如「每 2 小時」「每月 1 號」）時，先在 Web 表單選最接近的 preset，再用 CLI 的 `/schedule update` 設定具體 cron expression。**最小間隔 1 小時**，更密的 cron 會被拒絕。
+
+#### Trigger：API（HTTP POST）
+
+每個 routine 可以開一個專屬的 `/fire` endpoint 與 bearer token，任何能發 HTTPS 請求的系統（監控告警、部署 pipeline、內部工具）都可以觸發它。Token 只會顯示一次，離開畫面後就拿不回來——要立刻存到 secret store。
 
 ```bash
-/schedule
+curl -X POST https://api.anthropic.com/v1/claude_code/routines/trig_01ABCDEFGHJKLMNOPQRSTUVW/fire \
+  -H "Authorization: Bearer sk-ant-oat01-xxxxx" \
+  -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Sentry alert SEN-4521 fired in prod. Stack trace attached."}'
 ```
 
-或在 claude.ai 介面建立。每次執行都是全新的獨立 session，prompt 必須自給自足（不帶入前次 context）。  
-僅支援 GitHub repo（不支援本機路徑）、MCP 只限預先設定的 Connectors。
+成功回傳：
 
-**適合：** 定期產生報告、監控 GitHub PR/Issues、自動化程式碼審查等不需要本機環境的任務。
+```json
+{
+  "type": "routine_fire",
+  "claude_code_session_id": "session_01HJKLMNOPQRSTUVWXYZ",
+  "claude_code_session_url": "https://claude.ai/code/session_01HJKLMNOPQRSTUVWXYZ"
+}
+```
+
+要點：
+
+- `text` 欄位是**自由文字**，不會被解析——丟 JSON 進去也只是當成字串傳給 prompt。典型用法是把告警內容、失敗 log、部署 metadata 貼進來作為這次 run 的上下文。
+- 回傳的 `claude_code_session_url` 可以直接丟到 Slack，把 on-call 導到雲端 session 畫面即時觀看 / 接手對話。
+- Beta header `experimental-cc-routine-2026-04-01` 在 research preview 期間可能更動；破壞性變更會換新的 dated beta header，並保留**最近兩個舊版本**給呼叫端緩衝遷移。
+- Token 可在同一張對話框重新產生（Regenerate）或撤銷（Revoke），每個 routine 的 token 只能觸發自己那條 routine。
+- `/fire` endpoint 只給 claude.ai 使用者用，**不屬於** Claude Platform API 的一般工具介面。
+- API trigger 目前**只能從 Web 介面**加到 routine 上，CLI 無法建立 / 撤銷 token。
+
+#### Trigger：GitHub 事件
+
+GitHub trigger 讓 routine 自動對 repo 事件做出反應。每個符合條件的事件都會開一個獨立 session（不共用 session）。先決條件：**Claude GitHub App 必須已安裝在該 repo**——`/web-setup` 只給 clone 權限、不裝 App、也不會收到 webhook，設定 trigger 時 Web 介面會引導你裝 App。
+
+支援事件類別（可選整個類別或特定 action，例如 `pull_request.opened`）：
+
+| 事件 | 觸發時機 |
+|---|---|
+| Pull request | PR 開啟 / 關閉 / 指派 / 標籤 / synchronize 等 |
+| Pull request review | PR review 提交 / 編輯 / 撤回 |
+| Pull request review comment | PR diff 上的 inline 留言 |
+| Push | 分支被 push |
+| Release | release 建立 / 發布 / 編輯 / 刪除 |
+| Issues | issue 開啟 / 編輯 / 關閉 / 標籤 |
+| Issue comment | issue 或 PR 的留言 |
+| Sub issues | 子 issue 或父 issue 關係變動 |
+| Commit comment | commit / diff 留言 |
+| Discussion | discussion 建立 / 編輯 / 回答 |
+| Discussion comment | discussion 留言 |
+| Check run / Check suite | check run / suite 建立 / 完成 |
+| Merge queue entry | PR 進入或離開 merge queue |
+| Workflow run / Workflow job | GitHub Actions 流程 / job 開始 / 完成 |
+| Workflow dispatch | 手動觸發的 workflow |
+| Repository dispatch | 自訂的 `repository_dispatch` 事件 |
+
+PR filter 欄位（全部條件必須同時符合才觸發）：Author、Title、Body、Base branch、Head branch、Labels、Is draft、Is merged、From fork。典型組合：
+
+- **Auth 模組 review**：base `main` + head contains `auth-provider` → 觸發專門的 auth 審查 routine
+- **外部 contributor 防護**：from fork = true → 先讓 routine 做一輪安全 / 風格審查再交給真人
+- **Ready-for-review only**：is draft = false → 跳過 draft PR
+- **Label-gated backport**：labels 包含 `needs-backport` → 維護者打標籤時才觸發 backport routine
+
+> Research preview 期間 GitHub webhook 事件有 **per-routine 與 per-account 的每小時上限**，超過會被丟棄直到下一個時間窗。目前的配額顯示在 [claude.ai/code/routines](https://claude.ai/code/routines)。
+
+#### 建立與管理
+
+**從 Web：** [claude.ai/code/routines](https://claude.ai/code/routines) → **New routine** → 填名稱、prompt（含 model selector，每次 run 都用這顆模型）、選 repo、選 cloud environment、在 **Select a trigger** 裡加一個以上的 trigger、審查 connectors、**Create**。儲存後在清單按 **Run now** 可以立刻先跑一次不用等 trigger。
+
+**從 CLI：** 任何 session 裡執行
+
+```bash
+/schedule                                    # 互動式建立
+/schedule daily PR review at 9am             # 一行描述直接建立
+/schedule list                               # 列出所有 routine
+/schedule update                             # 修改既有 routine（可設自訂 cron）
+/schedule run                                # 立即觸發一次
+```
+
+CLI 只能建立 / 管理 **scheduled** routine。要加 API 或 GitHub trigger 必須回到 Web 編輯。如果帳號尚未連接 GitHub，`/schedule` 會提示先跑 `/web-setup`。
+
+**從 Desktop：** Schedule 頁面 → **New task** → 選 **New remote task** 即建立 routine（選 **New local task** 則是本機排程任務，完全不同）。Desktop 的列表會把兩者放在同一格子裡。
+
+**管理：** 點進 routine 詳細頁可看 repo、connectors、prompt、triggers 與歷史 runs：
+
+- **Run now**：立即跑一次，不等排程
+- **Repeats 切換**：暫停 / 恢復排程（配置保留但停止執行）
+- **鉛筆 icon**：編輯 prompt、repo、environment、connectors、所有 triggers
+- **垃圾桶 icon**：刪除 routine，但既有 run session 會保留在 session 清單裡
+- 點任一 run 會打開該次的完整 session，可看 diff、開 PR、或繼續對話
+
+#### 執行環境與權限
+
+- **分支推送預設只允許 `claude/` 前綴**，避免 routine 誤改保護分支或長命分支。要解除這個限制需要在 routine 設定裡開每個 repo 的 **Allow unrestricted branch pushes**。
+- **Cloud environment** 控制這次 run 的網路存取層級、環境變數（API key、token 等 secret）、setup script（安裝依賴、設定工具）。系統提供 Default environment；要自訂得先到 Claude Code on the Web 設定頁建立。
+- **Connectors** 預設會帶入帳號上所有已連接的 MCP connector——**請移除 routine 不需要的**，縮小每次 run 的權限範圍。
+- **身份：** routine 是用你個人 claude.ai 帳號執行，所有對外動作（commits、PR、Slack 訊息、Linear ticket）都掛你的名字。
+- **權限模式：** routine 是完整的 Claude Code cloud session，**沒有 permission-mode 選單、也沒有執行中的 approval 對話框**——可以跑 shell、用 repo 裡 committed 的 skill、呼叫 connectors。能碰到什麼完全由 repo 設定、environment、connectors 三者決定，設定時必須有意識地 scope 好。
+
+#### 使用限制
+
+- **每日 run 上限**（累計到帳號）：Pro 5、Max 15、Team / Enterprise 25
+- 同時耗用一般 subscription 的 session 用量
+- 超過上限後：organisation 若有開 **extra usage** 就會走 metered overage 繼續跑；沒開的話後續 run 會被拒絕直到時間窗重置
+- 目前消耗量查看：[claude.ai/code/routines](https://claude.ai/code/routines) 或 [claude.ai/settings/usage](https://claude.ai/settings/usage)
+
+#### 使用情境
+
+- **Backlog maintenance**：平日每晚跑一次，透過 connector 讀 issue tracker 的新 issue，打標籤、指派 owner、發 Slack 摘要——早上進辦公室時 queue 已整理好
+- **Alert triage**：監控系統把告警內容 POST 到 routine 的 API endpoint，routine 抓 stack trace 比對最近的 commit，開一個包含建議修法的 draft PR，on-call 直接從 PR 開始看而不是空白 terminal
+- **Bespoke code review**：`pull_request.opened` 觸發，套用團隊自己的 review checklist，針對安全 / 效能 / 風格留 inline 留言 + summary 留言，把人類 reviewer 空出來做設計判斷
+- **Deploy verification**：CD pipeline 在 prod deploy 結束後呼叫 routine 的 API endpoint，routine 跑 smoke test、掃 error log 找 regression，在 release window 結束前把 go / no-go 貼到 release 頻道
+- **Docs drift**：每週跑一次，掃過去一週 merged PR，標出引用到變動 API 的文件，對 docs repo 開更新 PR 交給編輯
+- **Library port**：`pull_request.closed` 並 filter `is_merged = true`，在 A 語言 SDK merge PR 後把變更 port 到 B 語言的平行 SDK，自動開對應 PR 讓兩個 library 保持同步
+
+> 延伸閱讀：本章後面的〈Claude Code on the Web（雲端執行）〉解釋 cloud session 怎麼 clone repo、跑 setup script、處理 diff、透過 auto-fix 修 PR——routine 本質上就是「把這個雲端執行流程接上 trigger 並記住設定」。
 
 ---
 
