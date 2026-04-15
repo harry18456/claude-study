@@ -59,7 +59,7 @@ Claude 有四種主要存取管道，對工程師來說定位各不相同：
 | 存取方式 | 工具 | 平台 | 說明 |
 |----------|------|------|------|
 | **Claude.ai** | 網頁瀏覽器 | 全平台 | 對話介面，支援檔案上傳、Artifacts、Projects |
-| **Claude Desktop** | 桌面應用程式 | macOS / Windows | 深度整合本機，支援 Cowork、Computer Use、MCP |
+| **Claude Desktop** | 桌面應用程式 | macOS / Windows | 整合 Cowork、Code 分頁（IDE 模式，多 session 並行）、Computer Use、MCP |
 | **Claude Code CLI** | 終端機工具 | 全平台 | 直接整合到開發環境，可操作本機檔案與程式碼 |
 | **Claude for Microsoft 365** | Office Add-in | macOS / Windows | 在 Word、Excel、PowerPoint 內以側邊欄形式使用 Claude |
 | **Claude API** | HTTP API / SDK | — | 程式化串接，用於建立 AI 應用或自動化流程 |
@@ -69,6 +69,7 @@ Claude 有四種主要存取管道，對工程師來說定位各不相同：
 Claude Desktop 不只是 Claude.ai 的桌面版，它有幾個網頁版沒有的獨特功能：
 
 - **Cowork**：自主 Agent 模式，可直接操作本機的 Excel、PowerPoint、Chrome、Slack 等 App，執行多步驟知識工作（整理文件、分析資料、自動化作業）
+- **Claude Code（Code 分頁）**：2026-04 大改版後的內建 IDE 模式——多 session 並排、拖拉自訂面板、內建 terminal / 檔案編輯 / Diff / Preview / Tasks，每個 session 自動用 Git worktree 隔離，Side Chat（`⌘+;`）分流問題不污染主對話。詳見 [04_CODE.md](04_CODE.md)
 - **Computer Use**（Pro/Max）：讓 Claude 控制你的螢幕——點擊、輸入、導覽——無需額外設定
 - **本機 MCP 整合**：一鍵安裝 `.mcpb` 擴充包，直接連接本機資料庫、檔案系統等工具
 - **Dispatch**：從手機派發任務給 Desktop 的 session，並行處理多個工作
