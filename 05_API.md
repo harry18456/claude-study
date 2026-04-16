@@ -142,7 +142,14 @@ response = client.messages.create(
 |------|----|----|------|---------|
 | **Haiku 4.5** | `claude-haiku-4-5-20251001` | 最快 | 最低 | 分類、摘要、簡單問答、高頻 Agent worker |
 | **Sonnet 4.6** | `claude-sonnet-4-6` | 中等 | 中等 | 程式碼生成、複雜分析、主要工作流程 |
-| **Opus 4.6** | `claude-opus-4-6` | 較慢 | 最高 | 複雜推理、架構決策、需要最佳品質 |
+| **Opus 4.7** | `claude-opus-4-7` | 較慢 | 最高 | 複雜推理、agentic coding、架構決策、需要最佳品質 |
+
+> **Opus 4.7 遷移注意（2026-04-16）：**
+> - 定價與 4.6 相同（$5 / $25 per MTok）；4.6 仍可用但已列為 legacy
+> - **Extended thinking → Adaptive thinking**：4.7 不再支援 `thinking` block / `type: "thinking"` 的 Extended thinking API。若你的程式碼用了 Extended thinking，遷移時需改用 Adaptive thinking 參數，否則 4.7 會忽略或報錯
+> - 新增 **`xhigh`** effort level（介於 `high` 與 `max` 之間），官方建議 coding / agentic 預設用 `xhigh`
+> - **新 tokenizer**：同樣 1M context 但壓縮比不同（~555k 字 vs 4.6 的 ~750k 字），prompt 如果已經接近 context 上限，升級後可能需要重新調整
+> - 另外：Claude Sonnet 4 / Opus 4 已 deprecated，**2026-06-15 退役**；Claude Haiku 3 **2026-04-19 退役**
 
 **API 費用計算方式：** 依 input tokens + output tokens 計費，詳見 [官方定價](https://www.anthropic.com/pricing)。
 

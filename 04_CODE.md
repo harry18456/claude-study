@@ -665,7 +665,7 @@ specific, actionable feedback on quality, security, and best practices.
 | `hooks` | — | 專屬於此 subagent 的 lifecycle hooks |
 | `skills` | — | 載入到此 subagent context 的 skills |
 | `mcpServers` | — | 此 subagent 可用的 MCP servers |
-| `effort` | — | 推理深度：`low` / `medium` / `high` / `max`（Opus 4.6 限定） |
+| `effort` | — | 推理深度：`low` / `medium` / `high` / `xhigh` / `max`（Opus 限定；`xhigh` 為 Opus 4.7 新增，官方建議 coding / agentic 預設用 `xhigh`） |
 
 ### 儲存位置與優先順序
 
@@ -1010,7 +1010,7 @@ Desktop 的 permission mode 有 5 種，`Cmd+Shift+M` 開選單切換：
 | **Ask permissions** | 每次改檔 / 跑指令前先問，適合新手 |
 | **Auto accept edits** | 自動接受檔案編輯與 `mkdir` / `touch` / `mv` 等 fs 指令，其他 terminal 指令仍問 |
 | **Plan mode** | 只讀 / 探索，產出計畫但不改原始碼 |
-| **Auto**（Research Preview） | 全自動執行，背景做安全檢查確認與任務一致。**Team / Enterprise / API 限定**，需要 Sonnet 4.6 或 Opus 4.6 |
+| **Auto**（Research Preview） | 全自動執行，背景做安全檢查確認與任務一致。**Team / Enterprise / API 限定**，需要 Sonnet 4.6 或 Opus 4.6 / 4.7 |
 | **Bypass permissions** | 完全不問，相當於 CLI 的 `--dangerously-skip-permissions`，要先在 Settings 開「Allow bypass permissions mode」才能用 |
 
 CLI 的 `dontAsk` mode 在 Desktop 不存在。Remote session 不支援 Ask permissions（本來就 auto-accept）與 Bypass（環境已 sandbox）。
@@ -1187,6 +1187,68 @@ claude --teleport  # 同上，從 terminal 啟動
 | 正確的 repo | 必須在同一個 repo 的 checkout 下執行 |
 | 分支已推送 | 雲端 branch 必須已推到 remote |
 | 同一帳號 | 必須登入同一個 Claude.ai 帳號 |
+
+### /ultraplan（雲端規劃）
+
+> **狀態：** Research Preview  
+> **需要：** Claude Code **v2.1.91+**、Claude Code on the Web 帳號、GitHub repo  
+> **不支援** Amazon Bedrock / Google Cloud Vertex AI / Microsoft Foundry（需要 Anthropic 自家雲端）  
+> **與 Remote Control 互斥**：兩者都佔 `claude.ai/code` 介面，觸發 ultraplan 會自動斷掉 Remote Control
+
+`/ultraplan` 把 **plan mode** 卸載到雲端——你在 terminal 下一行指令，Claude 就在 CCotW session 裡研究 codebase、起草完整實作計畫，你的 terminal 不會被卡住。計畫準備好之後在瀏覽器 review、留言、修改，最後選擇直接在雲端執行或 teleport 回 terminal 本地執行。
+
+如果你還沒有 cloud environment，ultraplan 會在**首次啟動時自動建立一個**預設環境。
+
+**三種觸發方式：**
+
+```bash
+# 1. 指令（跳確認對話框）
+/ultraplan migrate the auth service from sessions to JWTs
+
+# 2. 關鍵字（prompt 裡只要出現 ultraplan 就觸發，跳確認）
+幫我 ultraplan 一下怎麼把 monorepo 拆開
+
+# 3. 本地 plan 接力（不跳確認）
+# Claude 跑完 local plan mode 後，在核准對話框選
+# 「No, refine with Ultraplan on Claude Code on the web」
+```
+
+**CLI 狀態指示（prompt 行上方）：**
+
+| 狀態 | 意義 |
+|---|---|
+| ◇ `ultraplan` | Claude 正在研究 codebase、起草計畫 |
+| ◇ `ultraplan needs your input` | Claude 有 clarifying question，開 session link 回覆 |
+| ◆ `ultraplan ready` | 計畫已備好，去瀏覽器 review |
+
+跑 `/tasks` 可以看 ultraplan 項目的 session link、agent activity、以及 **Stop ultraplan** 按鈕（停掉會 archive 雲端 session，terminal 什麼都不留）。
+
+**瀏覽器 review UI：**
+
+`◆ ultraplan ready` 出現後點 session link，進入專屬的 plan review 畫面：
+
+- **Inline comments**：反白任一段文字留言，Claude 下一輪會針對該段修改
+- **Emoji reactions**：對某個 section 按 emoji 表示「OK」或「有疑慮」，不用寫完整留言
+- **Outline sidebar**：大綱側欄，section 間快速跳轉
+
+可以來回迭代多次直到滿意。
+
+**選擇執行方式（從瀏覽器選）：**
+
+| 選項 | 行為 |
+|---|---|
+| **Approve Claude's plan and start coding in your browser** | Claude 在**同一個 CCotW session** 實作，terminal status 清除。完成後在 Web 介面 review diff、開 PR |
+| **Approve plan and teleport back to terminal** | 雲端 session archive，terminal 彈出「Ultraplan approved」對話框（見下方） |
+
+Teleport 回來的對話框提供三個子選項：
+
+| 子選項 | 行為 |
+|---|---|
+| **Implement here** | 把 plan 注入目前對話，從原本斷點繼續 |
+| **Start new session** | 清掉目前對話，以 plan 為唯一 context 重開。會印出 `claude --resume <id>` 讓你回到舊對話 |
+| **Cancel** | 不執行，把 plan 存成檔案，Claude 印出檔案路徑讓你之後回來用 |
+
+> Teleport 回 terminal 的選項只在**從 CLI 啟動且 terminal 還在 polling** 時才出現。
 
 ### 雲端環境
 
@@ -1858,7 +1920,7 @@ v2.1.89 新增的特殊功能：你的 Claude Code 虛擬寵物。
 | 功能 | 說明 |
 |------|------|
 | **KAIROS** | 自主背景 daemon 模式，Claude 在閒置時整理記憶、移除矛盾，不需等待人類指令 |
-| **ULTRAPLAN** | 把規劃任務卸載到遠端雲端 session（最多 30 分鐘推理），結果再回傳本地 |
+| **ULTRAPLAN** | 把規劃任務卸載到遠端雲端 session，結果再回傳本地。**已於 2026-04-10 正式發布為 `/ultraplan`**（見上方〈[/ultraplan（雲端規劃）](#ultraplan雲端規劃)〉），外洩時描述的「最多 30 分鐘推理」在正式版文件中未被提及 |
 | **Coordinator Mode** | 一個 Claude 實例可以 spawn 並管理多個 worker agent 並行執行 |
 | **三層記憶架構** | 解決長 session 的「context entropy」問題，非傳統的「全部存起來」策略 |
 | **Anti-Distillation** | `ANTI_DISTILLATION_CC` flag 在 API 請求中注入假工具定義，毒化競爭對手錄製 API 流量所得的訓練資料 |
