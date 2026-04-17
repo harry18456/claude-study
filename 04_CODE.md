@@ -1799,6 +1799,17 @@ Claude Code v2.1.89 推出的新渲染模式，讓介面更像 vim / htop。
 
 ### 啟用方式
 
+**方法一：`/tui` 指令（v2.1.110+，推薦）**
+
+在任何 session 中直接切換，不用重啟：
+
+```bash
+/tui fullscreen    # 切換到全螢幕渲染
+/tui               # 不帶參數：顯示目前使用哪種 renderer
+```
+
+**方法二：環境變數（舊版，v2.1.89+）**
+
 **macOS / Linux / Git Bash：**
 ```bash
 # 單次使用

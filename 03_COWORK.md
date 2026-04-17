@@ -3,7 +3,7 @@
 # Claude Cowork
 
 > **知識截止日期：** 2026 年 4 月  
-> **狀態：** Research Preview（需 Pro 以上方案）  
+> **狀態：** GA（2026-04-09 正式發布，原為 Research Preview；需 Pro 以上方案）  
 > 官方介紹：[claude.com/product/cowork](https://claude.com/product/cowork)
 
 ---
@@ -220,7 +220,7 @@ Cowork 支援 Skills、Connectors、Plugins（同 Chat / Claude Code），透過
 
 ## 注意事項
 
-- **Research Preview**：功能持續更新，行為可能改變
+- **已 GA**（2026-04-09）：Cowork 本體已正式發布，但 Computer Use 仍為 Research Preview
 - **授權範圍**：只能操作你明確授予的資料夾，Claude 不會主動存取未授權的位置
 - **Computer Use 風險**：執行前 Claude 會說明計畫，建議確認後再允許執行
 - **不支援 Linux**：Claude Desktop 目前不提供 Linux 版本
