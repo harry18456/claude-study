@@ -74,6 +74,24 @@ Anthropic 最新發表的資安專用模型，**不屬於上述三個等級**，
 
 > 來源：[iThome 報導（2026/04/08）](https://www.ithome.com.tw/news/174898)
 
+### Anthropic Labs 與 Claude Design（2026-04-17）
+
+**Anthropic Labs** 是 Anthropic 內部的實驗產品孵化器，2024 年中由 2 人起步，現已擴編為正式團隊：
+
+- **共同領導**：Mike Krieger（Instagram 共同創辦人，原 Anthropic CPO）+ Ben Mann，直接向 President Daniela Amodei 報告
+- **Product 組織**由 Ami Vora 接手，與 CTO Rahul Patil 搭檔
+- Labs 歷來的代表作：**Claude Code**（6 個月做到 10 億美元產品）、**MCP**（每月 1 億次下載、已成業界標準）、**Cowork**（1.5 週從零做出）、Skills、Claude in Chrome
+
+**Claude Design** 是 Labs 最新推出的 AI 視覺設計工具（Research Preview，Pro / Max / Team / Enterprise）：
+
+- **能做的**：原型（prototype）、投影片（slides）、單頁（one-pager）、行銷 / 銷售素材
+- **使用方式**：自然語言描述 → Claude 生成初版 → 反覆微調（改色、字體、元素、加 dark mode 等）
+- **Design System 支援**：可讀取團隊的 codebase 和設計檔，自動套用品牌一致性
+- **Canva 整合**：透過 Canva AI Connectors 建立 Canva 簡報、調整尺寸、autofill 模板、搜尋 workspace 內容
+- **匯出**：PDF、URL、PPTX，或送到 Canva 繼續協作編輯
+- **底層模型**：Opus 4.7
+- **定位**：讓沒有設計背景的人（創辦人、PM、工程師）快速產出視覺素材，不取代專業設計工具
+
 ---
 
 ## 存取方式
@@ -85,6 +103,7 @@ Claude 有四種主要存取管道，對工程師來說定位各不相同：
 | **Claude.ai** | 網頁瀏覽器 | 全平台 | 對話介面，支援檔案上傳、Artifacts、Projects |
 | **Claude Desktop** | 桌面應用程式 | macOS / Windows | 整合 Cowork、Code 分頁（IDE 模式，多 session 並行）、Computer Use、MCP |
 | **Claude Code CLI** | 終端機工具 | 全平台 | 直接整合到開發環境，可操作本機檔案與程式碼 |
+| **Claude Design** | 視覺設計工具 | 網頁 | AI 生成原型、投影片、one-pager（Research Preview，Anthropic Labs 出品） |
 | **Claude for Microsoft 365** | Office Add-in | macOS / Windows | 在 Word、Excel、PowerPoint 內以側邊欄形式使用 Claude |
 | **Claude API** | HTTP API / SDK | — | 程式化串接，用於建立 AI 應用或自動化流程 |
 
