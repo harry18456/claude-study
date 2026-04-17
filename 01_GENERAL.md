@@ -66,6 +66,11 @@ Anthropic 最新發表的資安專用模型，**不屬於上述三個等級**，
 - 能串連多個漏洞進行複合攻擊鏈，並生成漏洞利用程式
 - 與 Opus 4.6 對比：Opus 數百次測試僅成功 2 次，Mythos 成功 181 次
 
+**與 Opus 4.7 的關係：**
+- Mythos 的安全偵測技術已部分下放到 Opus 4.7——4.7 是首個內建自動偵測 / 阻擋禁止資安行為的一般用途模型
+- 但 Mythos 本身仍全面領先 4.7：SWE-bench Verified 93.9% vs 87.6%、SWE-bench Pro 77.8% vs 64.3%、Terminal-Bench 82.0% vs 69.4%、GPQA Diamond 94.6% vs 94.2%
+- 換句話說：**Opus 4.7 是 Anthropic 認為「安全到可以公開給大眾」的版本；更強的 Mythos 因安全考量仍為邀請制**
+
 **Project Glasswing（全球資安防禦計畫）：**
 - 合作夥伴：AWS、Apple、Google、Microsoft、Nvidia、Cisco 等，涵蓋 40+ 關鍵基礎設施組織
 - 投資規模：最高 1 億美元使用額度，另捐贈 400 萬美元給開源資安組織
