@@ -191,7 +191,8 @@ claude -r "名稱或ID" "繼續"      # 直接恢復指定 session
 claude --permission-mode plan
 
 # session 中按 Shift+Tab 循環切換模式
-# default → acceptEdits → plan → auto → bypassPermissions
+# 預設循環：default → acceptEdits → plan
+# auto 與 bypassPermissions 需先啟用才會出現在循環中
 ```
 
 **`--dangerously-skip-permissions`**
@@ -297,7 +298,7 @@ Skills 比 Commands 多出的 frontmatter 能力：
 | `/rename [名稱]` | 重新命名目前 session，不填則自動產生名稱 |
 | `/export [檔名]` | 將對話匯出為純文字 |
 
-> **Recaps（自動摘要）：** 當你離開一個長時間運行的 session 再回來時，Claude 會自動給你一段簡短摘要——做了什麼、接下來要做什麼，不用自己爬上下文。搭配 Opus 4.7 跑長時間 agentic 工作（deep research、大規模重構）時特別有用。
+> **Session Recap（自動摘要）：** 離開 terminal 至少 **3 分鐘**且 terminal 處於 unfocused 狀態後回來，Claude 會自動顯示一行摘要——做了什麼、接下來要做什麼。需要 session 至少有 3 個 turn 才會觸發，且不會連續出現兩次。手動觸發：`/recap`；關閉：`/config` → Session recap，或設環境變數 `CLAUDE_CODE_ENABLE_AWAY_SUMMARY=0`。Non-interactive mode 下永遠跳過。
 
 ### 資訊查詢
 
@@ -353,7 +354,6 @@ Skills 比 Commands 多出的 frontmatter 能力：
 | `/loop <間隔> <任務>` | 定時重複執行任務（e.g., `/loop 5m check deployment status`） |
 | `/schedule` | 建立雲端排程任務（關機也能執行） |
 | `/simplify` | 對已變更程式碼做品質改善分析 |
-| `/fewer-permission-prompts` | 掃描歷史 session，找出安全但一直跳權限提示的 bash / MCP 指令，建議加到允許清單。適合不想用 Auto Mode 但想減少手動確認的人 |
 | `/feedback` | 回報問題給 Anthropic |
 
 > `/loop` 與 `/schedule` 的詳細說明見下方「排程系統」段落。  
@@ -1982,7 +1982,7 @@ Anthropic 向 GitHub 提出 8,000+ 個 DMCA 下架通知，但意外把 Anthropi
 | `Ctrl+O` | 切換詳細輸出 | 展開工具呼叫細節 |
 | `Ctrl+B` | 背景執行目前 bash 指令 | tmux 使用者需按兩次（因 tmux 占用 Ctrl+B） |
 | `Ctrl+T` | 切換 task list 顯示 | 顯示 / 隱藏多步驟任務清單 |
-| `Shift+Tab` | 循環切換 Permission Mode | default → acceptEdits → plan → auto → bypassPermissions |
+| `Shift+Tab` | 循環切換 Permission Mode | 預設 default → acceptEdits → plan；`auto` 與 `bypassPermissions` 需先啟用才出現在循環中 |
 | `Esc` + `Esc` | Rewind | 開啟可捲動的 checkpoint 選單，可分別選擇還原**程式碼**、**對話**、或**兩者** |
 
 ### 文字編輯
