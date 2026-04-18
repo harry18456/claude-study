@@ -89,11 +89,15 @@ Anthropic 最新發表的資安專用模型，**不屬於上述三個等級**，
 
 **Claude Design** 是 Labs 最新推出的 AI 視覺設計工具（Research Preview，Pro / Max / Team / Enterprise）：
 
-- **能做的**：原型（prototype）、投影片（slides）、單頁（one-pager）、行銷 / 銷售素材
+- **能做的**：原型（prototype）、投影片（slides）、單頁（one-pager）、wireframe、landing page、行銷 / 銷售素材
 - **使用方式**：自然語言描述 → Claude 生成初版 → 反覆微調（改色、字體、元素、加 dark mode 等）
-- **Design System 支援**：可讀取團隊的 codebase 和設計檔，自動套用品牌一致性
+- **Design System 支援**：可讀取團隊的 codebase、Figma 檔、品牌資產，自動套用一致視覺——解決 LLM 生 UI 常見的「紫紫 Tailwind 風」問題
+- **Handoff bundle**：設計定案後，Claude Design 能把設計打包成實作 bundle（components、design tokens、copy、互動說明），**直接交給 Claude Code 實作**——設計意圖與互動邏輯不用透過讀 source code 還原，生態系封閉在 Claude 內
+- **權限控管**：分享 URL 可設四種層級——Teammates can view / comment（預設）/ edit / Private。支援團隊多人在群組對話中與 Claude 共同修改
+- **Web Capture**：可從現有網站擷取元素，讓 prototype 看起來像真的產品而不是 mockup
 - **Canva 整合**：透過 Canva AI Connectors 建立 Canva 簡報、調整尺寸、autofill 模板、搜尋 workspace 內容
-- **匯出**：PDF、URL、PPTX，或送到 Canva 繼續協作編輯
+- **匯出**：PDF、URL、PPTX、standalone HTML、Canva，或**直接送到 Claude Code**（handoff bundle）
+- **額度**：有獨立於訂閱方案的額度條
 - **底層模型**：Opus 4.7
 - **定位**：讓沒有設計背景的人（創辦人、PM、工程師）快速產出視覺素材，不取代專業設計工具
 
@@ -127,11 +131,15 @@ Claude Desktop 不只是 Claude.ai 的桌面版，它有幾個網頁版沒有的
 
 ### Claude for Microsoft 365（2026 年 4 月 10 日 Public Beta）
 
-Claude 以 Office Add-in 形式直接嵌入 Word、Excel、PowerPoint 的側邊欄，目前為 Team / Enterprise 方案的 Public Beta：
+Claude 以 Office Add-in 形式直接嵌入 Word、Excel、PowerPoint 的側邊欄：
 
-- 在 Word 中撰寫、編輯、修改文件，所有 AI 修改以**追蹤修訂（Tracked Changes）**呈現
-- 跨 Word、Excel、PowerPoint 可在同一個對話中操作
+- **方案：** 原為 Team / Enterprise beta，**2026-04-17 擴大到 Pro / Max**（Free 仍為候補）
+- **追蹤修訂（Tracked Changes）**：在 Word 中所有 AI 修改以 Word 原生追蹤修訂呈現，不破壞原排版、字體、標號
+- **局部編輯**：可圈選特定段落請 Claude 修改（例如「精簡這段」「改為被動語態」），只動選取範圍、其他內容不動
+- **跨 App 上下文**：Word、Excel、PowerPoint 可在同一個對話中共享 context
 - 另外，Microsoft 365 Copilot 也已支援選用 Claude 作為替代模型
+
+> ⚠️ **安全警告**：**不要在來源不明或不可信的外部文件上使用**——惡意人士可能在文件或註解中藏 prompt injection，誘導 AI 洩漏資料或竄改內容。
 
 > 入口：[pivot.claude.ai](https://pivot.claude.ai/)
 
