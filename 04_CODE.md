@@ -181,7 +181,7 @@ claude -r "名稱或ID" "繼續"      # 直接恢復指定 session
 | `default` | 每次工具呼叫都詢問 |
 | `acceptEdits` | 自動接受檔案編輯，其餘仍詢問 |
 | `plan` | 只規劃不執行，所有操作需你確認 |
-| `auto` | 全自動執行，權限請求交給分類器判斷是否安全，安全的話自動通過。**Max / Team / Enterprise 限定**，需要 Sonnet 4.6 或 Opus 4.6 / 4.7（Research Preview） |
+| `auto` | 全自動執行，權限請求交給分類器判斷是否安全，安全的話自動通過。**Team / Enterprise / API 限定**（Research Preview，不含 Pro / Max），需要 Sonnet 4.6 或 Opus 4.6 / 4.7。詳見下方 Auto Mode 小節 |
 | `bypassPermissions` | 跳過所有確認，完全自動執行 |
 
 **切換方式：**
@@ -204,6 +204,90 @@ claude --dangerously-skip-permissions
 ```
 
 > **注意：** 適合在已知安全的自動化腳本中使用。日常互動不建議開啟，Claude 可能在未確認的情況下修改、刪除檔案。
+
+#### Auto Mode 詳解
+
+`auto` 模式是 2026/03 推出的權限管理機制，定位介於「逐一授權」與「`--dangerously-skip-permissions` 全繞過」之間：用 AI 分類器即時判斷每個動作是否安全，安全則自動放行，危險則攔截並要求 Claude 改採替代方案。
+
+**雙層防禦架構：**
+
+| 層 | 機制 | 用途 |
+|----|------|------|
+| 輸入層 | 伺服器端提示注入探測器 | 掃描檔案讀取、網頁擷取、Shell 輸出，偵測劫持行為時加註警告 |
+| 輸出層 | Sonnet 4.6 文字記錄分類器 | 執行前評估每項動作；分兩階段（單詞元快速過濾 → 鏈式推理） |
+
+> 分類器只看使用者訊息與工具呼叫，**不看 Claude 自己的解釋**，避免代理透過詳細說明「說服」分類器放行。
+
+**Tier 三層權限分級：**
+
+| Tier | 範圍 | 處理方式 |
+|------|------|----------|
+| 1 | 唯讀工具（檔案讀取、文字搜尋、代碼導航） | 內建允許清單直接放行 |
+| 2 | 專案目錄內檔案寫入/編輯 | 自動允許，依賴版控審查 |
+| 3 | Shell 指令、網頁擷取、外部整合、子代理、專案外檔案操作 | 走分類器判斷 |
+
+**預設阻止規則（20+ 條）：**
+
+分為四類，可執行 `claude auto-mode defaults` 查看完整清單：
+
+- **銷毀/外洩**：force push 改寫歷史、大量刪檔、外傳內部資料
+- **降低安全狀態**：禁用日誌、安裝持久性機制、修改權限設定
+- **跨越信任邊界**：執行外部程式碼、掃描憑證儲存、傳送至未指定服務
+- **繞過審查**：直接推 main、跑生產部署、修改共享資源
+
+強制允許例外：安裝 manifest 已聲明的套件、標準認證流程、推送至工作分支。
+
+**方案限制：**
+
+僅限 Team / Enterprise / API 用戶（Research Preview）。**Pro 與 Max（含 Max x5/x20）皆不支援**——嘗試啟用會回傳 `auto mode is unavailable for your plan`。
+
+**啟用方式（CLI 2.1.114+）：**
+
+```bash
+# 啟動時直接以 auto 模式進入 session
+claude --permission-mode auto
+
+# 檢視目前有效的 auto mode 設定（你的覆蓋 + 預設）
+claude auto-mode config
+
+# 檢視官方預設規則（allow / soft_deny / 環境）
+claude auto-mode defaults
+
+# 讓 AI 評論你自訂的規則
+claude auto-mode critique
+```
+
+> bnext 報導與部分早期文件提到的 `claude --enable-auto-mode` 旗標在 2.1.114 已不存在，改以 `--permission-mode auto` 啟動。
+
+| 平台 | 啟用方式 |
+|------|----------|
+| CLI | `claude --permission-mode auto` 啟動，session 中 Shift+Tab 可循環 |
+| VS Code Extension | 設定 → Claude Code 開啟後，從權限模式下拉選單選取 |
+| Desktop App | 設定 → Claude Code 啟用（預設關閉，組織版需經 Organization Settings 開啟） |
+
+**管理員停用（managed settings）：**
+
+```json
+{
+  "disableAutoMode": "disable"
+}
+```
+
+**自動停止機制：**
+
+防止分類器漏判導致連續錯誤行為：
+- 連續 **3 次** 拒絕 → 停止模型
+- 累計 **20 次** 拒絕 → 停止模型
+
+**限制與注意事項：**
+
+- 假陰性率約 **17%**（仍可能放行真正過度積極的行為）
+- 會增加 token 消耗、成本、延遲（每個動作多走一次分類器評估）
+- 偶爾誤擋良性操作
+- 官方明確指出：**不是仔細人工審查的替代品**
+- 建議在隔離環境（Sandbox / WSL / Docker）中執行
+
+> 官方文件：[Claude Code auto mode - Anthropic Engineering](https://www.anthropic.com/engineering/claude-code-auto-mode)
 
 ### Sandbox 模式
 
