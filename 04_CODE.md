@@ -2,7 +2,7 @@
 
 # Claude Code CLI
 
-> **知識截止日期：** 2026 年 4 月  
+> **知識截止日期：** 2026-04-15  
 > 官方文件：[code.claude.com/docs](https://code.claude.com/docs)
 
 ---
@@ -181,6 +181,7 @@ claude -r "名稱或ID" "繼續"      # 直接恢復指定 session
 | `default` | 每次工具呼叫都詢問 |
 | `acceptEdits` | 自動接受檔案編輯，其餘仍詢問 |
 | `plan` | 只規劃不執行，所有操作需你確認 |
+| `auto` | 全自動執行，權限請求交給分類器判斷是否安全，安全的話自動通過。**Max / Team / Enterprise 限定**，需要 Sonnet 4.6 或 Opus 4.6 / 4.7（Research Preview） |
 | `bypassPermissions` | 跳過所有確認，完全自動執行 |
 
 **切換方式：**
@@ -190,7 +191,8 @@ claude -r "名稱或ID" "繼續"      # 直接恢復指定 session
 claude --permission-mode plan
 
 # session 中按 Shift+Tab 循環切換模式
-# default → acceptEdits → plan → bypassPermissions
+# 預設循環：default → acceptEdits → plan
+# auto 與 bypassPermissions 需先啟用才會出現在循環中
 ```
 
 **`--dangerously-skip-permissions`**
@@ -296,6 +298,8 @@ Skills 比 Commands 多出的 frontmatter 能力：
 | `/rename [名稱]` | 重新命名目前 session，不填則自動產生名稱 |
 | `/export [檔名]` | 將對話匯出為純文字 |
 
+> **Session Recap（自動摘要）：** 離開 terminal 至少 **3 分鐘**且 terminal 處於 unfocused 狀態後回來，Claude 會自動顯示一行摘要——做了什麼、接下來要做什麼。需要 session 至少有 3 個 turn 才會觸發，且不會連續出現兩次。手動觸發：`/recap`；關閉：`/config` → Session recap，或設環境變數 `CLAUDE_CODE_ENABLE_AWAY_SUMMARY=0`。Non-interactive mode 下永遠跳過。
+
 ### 資訊查詢
 
 | 指令 | 說明 |
@@ -336,7 +340,8 @@ Skills 比 Commands 多出的 frontmatter 能力：
 | 指令 | 說明 |
 |------|------|
 | `/model` | 切換 AI 模型 |
-| `/effort [low\|medium\|high\|max]` | 調整推理深度（捷徑：在 prompt 中輸入 `think` 自動設為 high，讓 Claude 先思考再行動） |
+| `/effort [low\|medium\|high\|xhigh\|max]` | 調整推理深度（Opus 限定；`xhigh` 為 4.7 新增，官方建議 coding / agentic 預設用 `xhigh`；捷徑：prompt 中輸入 `think` 自動設為 high） |
+| `/focus` | **Focus Mode**：隱藏所有中間過程（工具呼叫、檔案讀取等），只顯示最終結果。適合已信任模型執行能力、只想看產出的場景 |
 | `/theme` | 切換色彩主題 |
 | `/vim` | 切換 Vim 編輯模式 |
 | `/fast [on\|off]` | 切換快速模式 |
@@ -665,7 +670,7 @@ specific, actionable feedback on quality, security, and best practices.
 | `hooks` | — | 專屬於此 subagent 的 lifecycle hooks |
 | `skills` | — | 載入到此 subagent context 的 skills |
 | `mcpServers` | — | 此 subagent 可用的 MCP servers |
-| `effort` | — | 推理深度：`low` / `medium` / `high` / `max`（Opus 4.6 限定） |
+| `effort` | — | 推理深度：`low` / `medium` / `high` / `xhigh` / `max`（Opus 限定；`xhigh` 為 Opus 4.7 新增，官方建議 coding / agentic 預設用 `xhigh`） |
 
 ### 儲存位置與優先順序
 
@@ -692,14 +697,15 @@ claude agents        # CLI 列出所有 subagent（不啟動互動 session）
 
 Claude Code 提供三種排程方式，適合不同使用情境：
 
-| | `/loop` | Desktop 本機排程 | `/schedule`（雲端） |
+| | `/loop` | Desktop 本機排程 | `/schedule` Routine（雲端） |
 |---|---|---|---|
 | **執行位置** | 本機，session 內 | 本機，Desktop app | Anthropic 雲端 |
 | **持久化** | ✗（關 session 消失） | △（Desktop 需開著） | ✓（關機也能執行） |
+| **Trigger 類型** | 時間 | 時間 | 時間 / API / GitHub 事件 |
 | **最小間隔** | 1 分鐘 | 1 分鐘 | 1 小時 |
 | **到期限制** | 3 天自動刪除 | 補跑（往回查 7 天） | 無 |
 | **本機檔案存取** | ✓ | ✓ | ✗（僅限 GitHub repo） |
-| **方案需求** | 所有方案 | 所有方案 | Pro 以上 |
+| **方案需求** | 所有方案 | 所有方案 | Pro 以上（每日 5/15/25 run 上限） |
 
 ### /loop
 
@@ -755,18 +761,335 @@ Claude Code 提供三種排程方式，適合不同使用情境：
 系統休眠恢復後會補跑錯過的任務（往回查最多 7 天）。  
 適合需要本機資源（SQLite、自訂 MCP）的長期自動化任務。
 
-### /schedule（雲端）
+### /schedule（Routines，雲端）
 
-由 Anthropic 雲端執行，不依賴你的電腦是否開機。
+> **狀態：** Research Preview（2026-04-14 推出）  
+> **方案：** Pro / Max / Team / Enterprise（需啟用 Claude Code on the Web）  
+> **入口：** [claude.ai/code/routines](https://claude.ai/code/routines)、CLI `/schedule`、Claude Desktop「New task → New remote task」
+
+**Routine** 是一個儲存在 claude.ai 帳號底下的 Claude Code 自動化設定——包含一段 prompt、一或多個 GitHub repo、cloud environment、MCP connectors，以及一個以上的 trigger。設定完成後就在 Anthropic 的雲端 VM 上自動執行，不依賴你的電腦是否開機。
+
+和本頁前面幾種排程的差異：
+
+| 特性 | `/loop` | Desktop 本機排程 | **Routine（`/schedule`）** |
+|---|---|---|---|
+| 執行位置 | 本機 session 內 | 本機 Desktop app | Anthropic 雲端 VM |
+| 本機檔案存取 | ✓ | ✓ | ✗（僅 GitHub repo） |
+| 持久化 | ✗ | 需 Desktop 開著 | ✓（完全無人值守） |
+| Trigger 類型 | 時間 | 時間 | **時間 / API / GitHub 事件** |
+| 每次 run | 延續 session | 延續 session | 全新獨立 session，prompt 必須自給自足 |
+
+每個 routine 可同時綁多種 trigger（例：每晚跑一次 + PR 開啟時跑 + CI 結束時從 API 呼叫），觸發後各自起一個獨立的 cloud session，可在 claude.ai 側邊欄看到該 session 的實際執行過程、diff，並從中直接開 PR。
+
+#### Trigger：Schedule（時間）
+
+Preset：hourly、daily、weekdays、weekly。時間以**你的本地時區**輸入，系統自動換算後以牆鐘時間執行（不受雲端機房所在地影響）。每個 routine 有固定的 stagger 偏移，實際開跑時間可能比設定時間晚幾分鐘。
+
+需要自訂 cron（例如「每 2 小時」「每月 1 號」）時，先在 Web 表單選最接近的 preset，再用 CLI 的 `/schedule update` 設定具體 cron expression。**最小間隔 1 小時**，更密的 cron 會被拒絕。
+
+#### Trigger：API（HTTP POST）
+
+每個 routine 可以開一個專屬的 `/fire` endpoint 與 bearer token，任何能發 HTTPS 請求的系統（監控告警、部署 pipeline、內部工具）都可以觸發它。Token 只會顯示一次，離開畫面後就拿不回來——要立刻存到 secret store。
 
 ```bash
-/schedule
+curl -X POST https://api.anthropic.com/v1/claude_code/routines/trig_01ABCDEFGHJKLMNOPQRSTUVW/fire \
+  -H "Authorization: Bearer sk-ant-oat01-xxxxx" \
+  -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Sentry alert SEN-4521 fired in prod. Stack trace attached."}'
 ```
 
-或在 claude.ai 介面建立。每次執行都是全新的獨立 session，prompt 必須自給自足（不帶入前次 context）。  
-僅支援 GitHub repo（不支援本機路徑）、MCP 只限預先設定的 Connectors。
+成功回傳：
 
-**適合：** 定期產生報告、監控 GitHub PR/Issues、自動化程式碼審查等不需要本機環境的任務。
+```json
+{
+  "type": "routine_fire",
+  "claude_code_session_id": "session_01HJKLMNOPQRSTUVWXYZ",
+  "claude_code_session_url": "https://claude.ai/code/session_01HJKLMNOPQRSTUVWXYZ"
+}
+```
+
+要點：
+
+- `text` 欄位是**自由文字**，不會被解析——丟 JSON 進去也只是當成字串傳給 prompt。典型用法是把告警內容、失敗 log、部署 metadata 貼進來作為這次 run 的上下文。
+- 回傳的 `claude_code_session_url` 可以直接丟到 Slack，把 on-call 導到雲端 session 畫面即時觀看 / 接手對話。
+- Beta header `experimental-cc-routine-2026-04-01` 在 research preview 期間可能更動；破壞性變更會換新的 dated beta header，並保留**最近兩個舊版本**給呼叫端緩衝遷移。
+- Token 可在同一張對話框重新產生（Regenerate）或撤銷（Revoke），每個 routine 的 token 只能觸發自己那條 routine。
+- `/fire` endpoint 只給 claude.ai 使用者用，**不屬於** Claude Platform API 的一般工具介面。
+- API trigger 目前**只能從 Web 介面**加到 routine 上，CLI 無法建立 / 撤銷 token。
+
+#### Trigger：GitHub 事件
+
+GitHub trigger 讓 routine 自動對 repo 事件做出反應。每個符合條件的事件都會開一個獨立 session（不共用 session）。先決條件：**Claude GitHub App 必須已安裝在該 repo**——`/web-setup` 只給 clone 權限、不裝 App、也不會收到 webhook，設定 trigger 時 Web 介面會引導你裝 App。
+
+支援事件類別（可選整個類別或特定 action，例如 `pull_request.opened`）：
+
+| 事件 | 觸發時機 |
+|---|---|
+| Pull request | PR 開啟 / 關閉 / 指派 / 標籤 / synchronize 等 |
+| Pull request review | PR review 提交 / 編輯 / 撤回 |
+| Pull request review comment | PR diff 上的 inline 留言 |
+| Push | 分支被 push |
+| Release | release 建立 / 發布 / 編輯 / 刪除 |
+| Issues | issue 開啟 / 編輯 / 關閉 / 標籤 |
+| Issue comment | issue 或 PR 的留言 |
+| Sub issues | 子 issue 或父 issue 關係變動 |
+| Commit comment | commit / diff 留言 |
+| Discussion | discussion 建立 / 編輯 / 回答 |
+| Discussion comment | discussion 留言 |
+| Check run / Check suite | check run / suite 建立 / 完成 |
+| Merge queue entry | PR 進入或離開 merge queue |
+| Workflow run / Workflow job | GitHub Actions 流程 / job 開始 / 完成 |
+| Workflow dispatch | 手動觸發的 workflow |
+| Repository dispatch | 自訂的 `repository_dispatch` 事件 |
+
+PR filter 欄位（全部條件必須同時符合才觸發）：Author、Title、Body、Base branch、Head branch、Labels、Is draft、Is merged、From fork。典型組合：
+
+- **Auth 模組 review**：base `main` + head contains `auth-provider` → 觸發專門的 auth 審查 routine
+- **外部 contributor 防護**：from fork = true → 先讓 routine 做一輪安全 / 風格審查再交給真人
+- **Ready-for-review only**：is draft = false → 跳過 draft PR
+- **Label-gated backport**：labels 包含 `needs-backport` → 維護者打標籤時才觸發 backport routine
+
+> Research preview 期間 GitHub webhook 事件有 **per-routine 與 per-account 的每小時上限**，超過會被丟棄直到下一個時間窗。目前的配額顯示在 [claude.ai/code/routines](https://claude.ai/code/routines)。
+
+#### 建立與管理
+
+**從 Web：** [claude.ai/code/routines](https://claude.ai/code/routines) → **New routine** → 填名稱、prompt（含 model selector，每次 run 都用這顆模型）、選 repo、選 cloud environment、在 **Select a trigger** 裡加一個以上的 trigger、審查 connectors、**Create**。儲存後在清單按 **Run now** 可以立刻先跑一次不用等 trigger。
+
+**從 CLI：** 任何 session 裡執行
+
+```bash
+/schedule                                    # 互動式建立
+/schedule daily PR review at 9am             # 一行描述直接建立
+/schedule list                               # 列出所有 routine
+/schedule update                             # 修改既有 routine（可設自訂 cron）
+/schedule run                                # 立即觸發一次
+```
+
+CLI 只能建立 / 管理 **scheduled** routine。要加 API 或 GitHub trigger 必須回到 Web 編輯。如果帳號尚未連接 GitHub，`/schedule` 會提示先跑 `/web-setup`。
+
+**從 Desktop：** Schedule 頁面 → **New task** → 選 **New remote task** 即建立 routine（選 **New local task** 則是本機排程任務，完全不同）。Desktop 的列表會把兩者放在同一格子裡。
+
+**管理：** 點進 routine 詳細頁可看 repo、connectors、prompt、triggers 與歷史 runs：
+
+- **Run now**：立即跑一次，不等排程
+- **Repeats 切換**：暫停 / 恢復排程（配置保留但停止執行）
+- **鉛筆 icon**：編輯 prompt、repo、environment、connectors、所有 triggers
+- **垃圾桶 icon**：刪除 routine，但既有 run session 會保留在 session 清單裡
+- 點任一 run 會打開該次的完整 session，可看 diff、開 PR、或繼續對話
+
+#### 執行環境與權限
+
+- **分支推送預設只允許 `claude/` 前綴**，避免 routine 誤改保護分支或長命分支。要解除這個限制需要在 routine 設定裡開每個 repo 的 **Allow unrestricted branch pushes**。
+- **Cloud environment** 控制這次 run 的網路存取層級、環境變數（API key、token 等 secret）、setup script（安裝依賴、設定工具）。系統提供 Default environment；要自訂得先到 Claude Code on the Web 設定頁建立。
+- **Connectors** 預設會帶入帳號上所有已連接的 MCP connector——**請移除 routine 不需要的**，縮小每次 run 的權限範圍。
+- **身份：** routine 是用你個人 claude.ai 帳號執行，所有對外動作（commits、PR、Slack 訊息、Linear ticket）都掛你的名字。
+- **權限模式：** routine 是完整的 Claude Code cloud session，**沒有 permission-mode 選單、也沒有執行中的 approval 對話框**——可以跑 shell、用 repo 裡 committed 的 skill、呼叫 connectors。能碰到什麼完全由 repo 設定、environment、connectors 三者決定，設定時必須有意識地 scope 好。
+
+#### 使用限制
+
+- **每日 run 上限**（累計到帳號）：Pro 5、Max 15、Team / Enterprise 25
+- 同時耗用一般 subscription 的 session 用量
+- 超過上限後：organisation 若有開 **extra usage** 就會走 metered overage 繼續跑；沒開的話後續 run 會被拒絕直到時間窗重置
+- 目前消耗量查看：[claude.ai/code/routines](https://claude.ai/code/routines) 或 [claude.ai/settings/usage](https://claude.ai/settings/usage)
+
+#### 使用情境
+
+- **Backlog maintenance**：平日每晚跑一次，透過 connector 讀 issue tracker 的新 issue，打標籤、指派 owner、發 Slack 摘要——早上進辦公室時 queue 已整理好
+- **Alert triage**：監控系統把告警內容 POST 到 routine 的 API endpoint，routine 抓 stack trace 比對最近的 commit，開一個包含建議修法的 draft PR，on-call 直接從 PR 開始看而不是空白 terminal
+- **Bespoke code review**：`pull_request.opened` 觸發，套用團隊自己的 review checklist，針對安全 / 效能 / 風格留 inline 留言 + summary 留言，把人類 reviewer 空出來做設計判斷
+- **Deploy verification**：CD pipeline 在 prod deploy 結束後呼叫 routine 的 API endpoint，routine 跑 smoke test、掃 error log 找 regression，在 release window 結束前把 go / no-go 貼到 release 頻道
+- **Docs drift**：每週跑一次，掃過去一週 merged PR，標出引用到變動 API 的文件，對 docs repo 開更新 PR 交給編輯
+- **Library port**：`pull_request.closed` 並 filter `is_merged = true`，在 A 語言 SDK merge PR 後把變更 port 到 B 語言的平行 SDK，自動開對應 PR 讓兩個 library 保持同步
+
+> 延伸閱讀：本章後面的〈Claude Code on the Web（雲端執行）〉解釋 cloud session 怎麼 clone repo、跑 setup script、處理 diff、透過 auto-fix 修 PR——routine 本質上就是「把這個雲端執行流程接上 trigger 並記住設定」。
+
+---
+
+## Claude Code Desktop（Code 分頁）
+
+> **狀態：** 2026-04-14 大改版（需 Claude Desktop **v1.2581.0** 以上，macOS：Claude → Check for Updates；Windows：Help → Check for Updates）  
+> **方案：** Pro / Max / Team / Enterprise，以及 Claude API  
+> **平台：** macOS / Windows（Linux 不支援）  
+> **官方文件：** [code.claude.com/docs/en/desktop](https://code.claude.com/docs/en/desktop)
+
+Claude Desktop 內的 **Code 分頁**在 2026-04 重新設計，把 Claude Code 從「純 terminal 工具」升級成類似 Cursor / Windsurf 定位的 GUI IDE：單一視窗同時跑多條獨立 session、每個 session 各自 Git worktree 隔離、內建 terminal / 檔案編輯 / Diff / Preview / Tasks / Subagent 等面板，並支援拖拉自訂版面。設計主軸是 **parallel agents**——不是 multi-tab 外觀，而是真的讓多個 Claude agent 各自在隔離的工作複本上平行進行。
+
+> **與 CLI 的關係：** 這不是另一套工具，是同一個 Claude Code 的 GUI 入口。Skills、Connectors、Plugins、Permission Modes、MCP、Hooks 都跟 CLI 共用同一套設定，換介面不換腦。CLI 的快捷鍵（如 `Shift+Tab` 切 mode）**在 Desktop 內不生效**，Desktop 有自己的快捷鍵組。
+
+### 工作區面板
+
+介面由 **8 種可自由拖拉的面板**組成，從 session toolbar 的 **Views** 選單開啟、拖 header 搬移、拖邊緣調大小：
+
+| 面板 | 內容 |
+|---|---|
+| **Chat** | 與 Claude 的對話主區 |
+| **Diff** | Claude 改完後的 diff viewer，支援 inline 留言 |
+| **Preview** | 內嵌瀏覽器（dev server、HTML、PDF、圖片） |
+| **Terminal** | 整合 terminal，與 session 同 cwd / 同環境 |
+| **File** | 點路徑就開的檔案編輯器 |
+| **Plan** | Plan mode 下 Claude 的計畫步驟 |
+| **Tasks** | 背景 subagent / shell / workflow 執行清單 |
+| **Subagent** | 單一 subagent 的輸出明細 |
+
+`Cmd+\`（macOS）/ `Ctrl+\`（Windows）關掉目前聚焦的面板。
+
+### 多 session 並行 + Git worktree 隔離
+
+這是這次改版**最核心**的功能：
+
+- **`Cmd+N` / `Ctrl+N`** 開新 session，**`Ctrl+Tab` / `Ctrl+Shift+Tab`** 切換，左側 sidebar 集中管理所有 session
+- **每一個 session 在 Git repo 下會自動開一個獨立的 worktree**，預設放在 `<project-root>/.claude/worktrees/`，兩個 session 同時改同一個 repo 也不會互踩，commit 之後才可能碰面
+- Settings → Claude Code 可換 worktree 路徑、設 branch 前綴（方便把 Claude 建的分支整批辨識）
+- 在 sidebar hover session → 點 archive icon 收掉 worktree；開啟 **Auto-archive after PR merge or close** 讓 session 在 PR 合併 / 關閉後自動 archive（僅限 local session、且跑完才會 archive）
+- 要把 `.env` 這類 gitignored 檔也帶進 worktree，在專案根目錄建立 **`.worktreeinclude`** 檔案列出要帶的路徑
+- sidebar 頂端可以依 **status / project / environment** 過濾，或依 **project** 分組
+
+> **需要 Git。** macOS 通常內建；Windows 要先裝 [Git for Windows](https://git-scm.com/downloads/win)，否則 Code 分頁整個無法運作。
+
+### Side Chat（分流問題不污染主對話）
+
+按 **`Cmd+;` / `Ctrl+;`**，或在 prompt 打 **`/btw`**，開一個 side chat：
+
+- side chat 可以讀到主 thread 到目前為止的所有 context
+- **但 side chat 的對話不會寫回主 thread**，所以你問「這段程式在做什麼」、「我這個假設對不對」不會讓主 session 轉向
+- 只支援 **local 與 SSH** session，remote 沒有
+
+### 內建 Terminal
+
+`` Ctrl+` `` 切換（macOS / Windows 都是）。Terminal 開在 session 的 working directory，與 Claude **共用同一個環境與檔案**，所以 `npm test`、`git status` 看到的就是 Claude 正在改的那份。**僅 local session 可用**。
+
+### 檔案編輯面板
+
+點 chat 或 diff viewer 裡任一檔案路徑就會在 file pane 打開，直接改、按 Save 寫回。若該檔在 disk 上被別人改動，會跳警告讓你選覆蓋或丟棄。右鍵路徑可以：
+
+- **Attach as context**：加到下一個 prompt
+- **Open in**：用系統裝的其他編輯器（VS Code / Cursor / Zed）打開
+- **Show in Finder / Explorer**、**Copy path**
+
+File pane 在 **local 與 SSH** 可用，remote session 要編輯得請 Claude 代勞。
+
+### Diff View（改完後審查）
+
+Claude 改完檔案後，session 裡會出現 `+12 -1` 這類 diff 統計指示，點開進 diff viewer：
+
+- 左側檔案清單、右側逐檔差異
+- **點任一行加 inline 留言**，按 **`Cmd+Enter` / `Ctrl+Enter`** 一次送出全部留言，Claude 讀完留言改，產生新一輪 diff
+- 右上 **Review code** 按鈕讓 Claude **自己審自己的 diff**，只抓 compile error、邏輯錯、安全漏洞、明顯 bug，**不管 lint 類風格問題**
+
+### Preview + Auto-verify
+
+Preview 面板可以：
+
+- 啟動 dev server、在內嵌瀏覽器互動操作
+- 開 HTML 靜態檔、PDF、圖片
+- **Auto-verify**（預設開啟）：Claude 每次改完檔案**自動**截圖、檢查 console、點元素、填表單、發現問題自己修，確認沒事才算回合結束
+- **Persist sessions**：重啟 server 時保留 cookie 與 localStorage，開發時不用反覆登入
+
+自訂 dev 指令寫在 **`.claude/launch.json`**，支援多組 configuration（例：同時跑前端 + API）：
+
+```json
+{
+  "version": "0.0.1",
+  "autoVerify": true,
+  "configurations": [
+    {
+      "name": "my-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    }
+  ]
+}
+```
+
+把 `autoVerify` 設 `false` 就關掉自動驗證（preview 工具仍可手動呼叫）。
+
+### Permission Modes（Desktop 版）
+
+Desktop 的 permission mode 有 5 種，`Cmd+Shift+M` 開選單切換：
+
+| Mode | 行為 |
+|---|---|
+| **Ask permissions** | 每次改檔 / 跑指令前先問，適合新手 |
+| **Auto accept edits** | 自動接受檔案編輯與 `mkdir` / `touch` / `mv` 等 fs 指令，其他 terminal 指令仍問 |
+| **Plan mode** | 只讀 / 探索，產出計畫但不改原始碼 |
+| **Auto**（Research Preview） | 全自動執行，背景做安全檢查確認與任務一致。**Team / Enterprise / API 限定**，需要 Sonnet 4.6 或 Opus 4.6 / 4.7 |
+| **Bypass permissions** | 完全不問，相當於 CLI 的 `--dangerously-skip-permissions`，要先在 Settings 開「Allow bypass permissions mode」才能用 |
+
+CLI 的 `dontAsk` mode 在 Desktop 不存在。Remote session 不支援 Ask permissions（本來就 auto-accept）與 Bypass（環境已 sandbox）。
+
+### Transcript View Modes
+
+`Ctrl+O` 循環三種對話檢視模式：
+
+- **Normal**：tool call 收合成摘要，文字回覆完整顯示
+- **Verbose**：每個 tool call、檔案讀、中間步驟全展開（debug 用）
+- **Summary**：只顯示 Claude 最終回覆與變更摘要（**多 session 並跑快速掃結果**時超好用）
+
+### Session 環境：Local / Remote / SSH
+
+開 session 前在 prompt 區要選三件事：**環境、專案資料夾、model**。環境分三種：
+
+| 環境 | 跑在哪 | 特色 |
+|---|---|---|
+| **Local** | 你的機器 | 支援所有面板與功能 |
+| **Remote** | Anthropic 雲端 VM | 關機也繼續、同 session 可加多 repo，適合大 refactor / migration |
+| **SSH** | 自管的遠端機器 | local 功能幾乎都有，受限於 SSH 連線穩定 |
+
+⚠️ **Remote session 不支援 `@mention` 檔案、也不支援 File pane 直接編輯**，要改請 Claude 代勞；**`+` 連接器按鈕** 在 remote 也沒有（Routine 是用 routine 設定時就掛好 connector）。
+
+### PR 監控（Auto-fix / Auto-merge）
+
+開完 PR 後 session 頂端出現 CI status bar（需要本機裝 `gh` CLI）：
+
+- **Auto-fix**：CI failed 時 Claude 讀錯誤輸出、自己迭代修到綠燈
+- **Auto-merge**：CI 全綠時自動 squash merge，**需要 repo 設定先把 auto-merge 開起來**
+- CI 完成會發桌面通知
+- 若開啟 **Auto-archive after PR merge or close**，session 會在 PR 合併 / 關閉後自動從 sidebar 下架
+
+### Continue in（session 搬家）
+
+右下 VS Code 圖示的 **Continue in** 選單可以把目前 session 移到別處：
+
+- **Claude Code on the Web**：把 local session 推到雲端繼續跑——Desktop 會 push 你的 branch、產對話摘要、在雲端建一條帶完整 context 的 remote session，之後你可選擇 archive 本機 session 或留著。**需要 working tree 乾淨**，SSH session 不支援
+- **Your IDE**：用 VS Code / Cursor / Zed 在當前工作目錄打開專案
+
+### Dispatch 整合
+
+`03_COWORK.md` 介紹的 Dispatch 會在 Code 分頁長這樣：
+
+- Dispatch 判斷為開發型任務時（修 bug、更新依賴、跑測試、開 PR），**自動在 Code 分頁的 sidebar 開一條 session**，session 名旁帶 **Dispatch** badge
+- 工作完成或需要 approval 時你手機會收推播
+- 若啟用 Computer Use，Dispatch 開的 session 也可用——但 **app approval 只持續 30 分鐘**（一般 session 是整個 session），過期會重新詢問
+
+### 關鍵快捷鍵速查
+
+`Cmd+/` / `Ctrl+/` 隨時叫出完整清單，常用的幾個：
+
+| 快捷鍵 | 動作 |
+|---|---|
+| `Cmd+N` / `Cmd+W` | 新 session / 關 session |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | 切換 session（**所有平台都用 Ctrl**） |
+| `Esc` | 中斷 Claude 當前回應 |
+| `Cmd+Shift+D` / `Cmd+Shift+P` | 切換 diff / preview 面板 |
+| `Cmd+Shift+S` | 在 preview 裡選某個 element |
+| `` Ctrl+` `` | 切換 terminal 面板 |
+| `Cmd+\` | 關閉目前聚焦的面板 |
+| `Cmd+;` | 開 side chat（或打 `/btw`） |
+| `Ctrl+O` | 循環 transcript view mode |
+| `Cmd+Shift+M` / `I` / `E` | 開 permission mode / model / effort 選單 |
+| `1`–`9` | 已開的選單裡選第 N 項 |
+
+> CLI 的互動模式快捷鍵（如 `Shift+Tab` 切 mode）**在 Desktop 不適用**，Code 分頁有自己的快捷鍵組。
+
+### 延伸閱讀與關聯功能
+
+- [**Claude Code on the Web**](#claude-code-on-the-web雲端執行)：下一章，Desktop 的 **Remote** 環境就是用它的雲端基礎設施；Continue in 也是把 local session 推到它上面
+- [**Routines**](#schedule-routines雲端)（本章上面）：排程 / API / GitHub trigger 觸發的雲端 session，執行結果會出現在 Code 分頁的 sidebar，點進去就是一般 session 畫面
+- [**Desktop 本機排程**](#desktop-本機排程)（本章上面）：Desktop 的 Schedule 頁面選 **New local task** 建的是本機排程、**New remote task** 則會變成 Routine
+- **Cowork 分頁**（`03_COWORK.md`）：同一個 Claude Desktop 的另一個 tab，Dispatch 的開發型任務會從 Cowork 轉進 Code 分頁
 
 ---
 
@@ -869,6 +1192,68 @@ claude --teleport  # 同上，從 terminal 啟動
 | 正確的 repo | 必須在同一個 repo 的 checkout 下執行 |
 | 分支已推送 | 雲端 branch 必須已推到 remote |
 | 同一帳號 | 必須登入同一個 Claude.ai 帳號 |
+
+### /ultraplan（雲端規劃）
+
+> **狀態：** Research Preview  
+> **需要：** Claude Code **v2.1.91+**、Claude Code on the Web 帳號、GitHub repo  
+> **不支援** Amazon Bedrock / Google Cloud Vertex AI / Microsoft Foundry（需要 Anthropic 自家雲端）  
+> **與 Remote Control 互斥**：兩者都佔 `claude.ai/code` 介面，觸發 ultraplan 會自動斷掉 Remote Control
+
+`/ultraplan` 把 **plan mode** 卸載到雲端——你在 terminal 下一行指令，Claude 就在 CCotW session 裡研究 codebase、起草完整實作計畫，你的 terminal 不會被卡住。計畫準備好之後在瀏覽器 review、留言、修改，最後選擇直接在雲端執行或 teleport 回 terminal 本地執行。
+
+如果你還沒有 cloud environment，ultraplan 會在**首次啟動時自動建立一個**預設環境。
+
+**三種觸發方式：**
+
+```bash
+# 1. 指令（跳確認對話框）
+/ultraplan migrate the auth service from sessions to JWTs
+
+# 2. 關鍵字（prompt 裡只要出現 ultraplan 就觸發，跳確認）
+幫我 ultraplan 一下怎麼把 monorepo 拆開
+
+# 3. 本地 plan 接力（不跳確認）
+# Claude 跑完 local plan mode 後，在核准對話框選
+# 「No, refine with Ultraplan on Claude Code on the web」
+```
+
+**CLI 狀態指示（prompt 行上方）：**
+
+| 狀態 | 意義 |
+|---|---|
+| ◇ `ultraplan` | Claude 正在研究 codebase、起草計畫 |
+| ◇ `ultraplan needs your input` | Claude 有 clarifying question，開 session link 回覆 |
+| ◆ `ultraplan ready` | 計畫已備好，去瀏覽器 review |
+
+跑 `/tasks` 可以看 ultraplan 項目的 session link、agent activity、以及 **Stop ultraplan** 按鈕（停掉會 archive 雲端 session，terminal 什麼都不留）。
+
+**瀏覽器 review UI：**
+
+`◆ ultraplan ready` 出現後點 session link，進入專屬的 plan review 畫面：
+
+- **Inline comments**：反白任一段文字留言，Claude 下一輪會針對該段修改
+- **Emoji reactions**：對某個 section 按 emoji 表示「OK」或「有疑慮」，不用寫完整留言
+- **Outline sidebar**：大綱側欄，section 間快速跳轉
+
+可以來回迭代多次直到滿意。
+
+**選擇執行方式（從瀏覽器選）：**
+
+| 選項 | 行為 |
+|---|---|
+| **Approve Claude's plan and start coding in your browser** | Claude 在**同一個 CCotW session** 實作，terminal status 清除。完成後在 Web 介面 review diff、開 PR |
+| **Approve plan and teleport back to terminal** | 雲端 session archive，terminal 彈出「Ultraplan approved」對話框（見下方） |
+
+Teleport 回來的對話框提供三個子選項：
+
+| 子選項 | 行為 |
+|---|---|
+| **Implement here** | 把 plan 注入目前對話，從原本斷點繼續 |
+| **Start new session** | 清掉目前對話，以 plan 為唯一 context 重開。會印出 `claude --resume <id>` 讓你回到舊對話 |
+| **Cancel** | 不執行，把 plan 存成檔案，Claude 印出檔案路徑讓你之後回來用 |
+
+> Teleport 回 terminal 的選項只在**從 CLI 啟動且 terminal 還在 polling** 時才出現。
 
 ### 雲端環境
 
@@ -1414,6 +1799,17 @@ Claude Code v2.1.89 推出的新渲染模式，讓介面更像 vim / htop。
 
 ### 啟用方式
 
+**方法一：`/tui` 指令（v2.1.110+，推薦）**
+
+在任何 session 中直接切換，不用重啟：
+
+```bash
+/tui fullscreen    # 切換到全螢幕渲染
+/tui               # 不帶參數：顯示目前使用哪種 renderer
+```
+
+**方法二：環境變數（舊版，v2.1.89+）**
+
 **macOS / Linux / Git Bash：**
 ```bash
 # 單次使用
@@ -1540,7 +1936,7 @@ v2.1.89 新增的特殊功能：你的 Claude Code 虛擬寵物。
 | 功能 | 說明 |
 |------|------|
 | **KAIROS** | 自主背景 daemon 模式，Claude 在閒置時整理記憶、移除矛盾，不需等待人類指令 |
-| **ULTRAPLAN** | 把規劃任務卸載到遠端雲端 session（最多 30 分鐘推理），結果再回傳本地 |
+| **ULTRAPLAN** | 把規劃任務卸載到遠端雲端 session，結果再回傳本地。**已於 2026-04-10 正式發布為 `/ultraplan`**（見上方〈[/ultraplan（雲端規劃）](#ultraplan雲端規劃)〉），外洩時描述的「最多 30 分鐘推理」在正式版文件中未被提及 |
 | **Coordinator Mode** | 一個 Claude 實例可以 spawn 並管理多個 worker agent 並行執行 |
 | **三層記憶架構** | 解決長 session 的「context entropy」問題，非傳統的「全部存起來」策略 |
 | **Anti-Distillation** | `ANTI_DISTILLATION_CC` flag 在 API 請求中注入假工具定義，毒化競爭對手錄製 API 流量所得的訓練資料 |
@@ -1597,7 +1993,7 @@ Anthropic 向 GitHub 提出 8,000+ 個 DMCA 下架通知，但意外把 Anthropi
 | `Ctrl+O` | 切換詳細輸出 | 展開工具呼叫細節 |
 | `Ctrl+B` | 背景執行目前 bash 指令 | tmux 使用者需按兩次（因 tmux 占用 Ctrl+B） |
 | `Ctrl+T` | 切換 task list 顯示 | 顯示 / 隱藏多步驟任務清單 |
-| `Shift+Tab` | 循環切換 Permission Mode | default → acceptEdits → plan → bypassPermissions |
+| `Shift+Tab` | 循環切換 Permission Mode | 預設 default → acceptEdits → plan；`auto` 與 `bypassPermissions` 需先啟用才出現在循環中 |
 | `Esc` + `Esc` | Rewind | 開啟可捲動的 checkpoint 選單，可分別選擇還原**程式碼**、**對話**、或**兩者** |
 
 ### 文字編輯
