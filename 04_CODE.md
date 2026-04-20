@@ -384,6 +384,28 @@ Skills 比 Commands 多出的 frontmatter 能力：
 
 > **Session Recap（自動摘要）：** 離開 terminal 至少 **3 分鐘**且 terminal 處於 unfocused 狀態後回來，Claude 會自動顯示一行摘要——做了什麼、接下來要做什麼。需要 session 至少有 3 個 turn 才會觸發，且不會連續出現兩次。手動觸發：`/recap`；關閉：`/config` → Session recap，或設環境變數 `CLAUDE_CODE_ENABLE_AWAY_SUMMARY=0`。Non-interactive mode 下永遠跳過。
 
+> **Auto-compact 門檻調整（env 變數）：** context 接近上限時 Claude Code 會自動觸發 compact。兩個未文件化的環境變數可調整觸發時機：
+>
+> | 變數 | 作用 | 預設 |
+> |------|------|------|
+> | `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | 覆寫計算用的 context window 大小（token 數） | 依模型（200k 或 1M） |
+> | `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | 觸發百分比門檻（1–100） | 95 |
+>
+> **實際觸發點 = WINDOW × PCT / 100。** 兩者可獨立或併用：
+>
+> ```json
+> {
+>   "env": {
+>     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "400000",
+>     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
+>   }
+> }
+> ```
+>
+> - 覺得 1M 太吃 token、200k 又太小 → 設 `WINDOW` 為中間值（例如 400k）
+> - 想提早 compact 保留餘裕 → 把 `PCT` 設低（例如 50 代表用掉一半就 compact）
+> - **完全關閉自動 compact** → 把 `PCT` 設為 `100`，改用 `/compact` 手動觸發（也可在 `/config` 把 `autoCompactEnabled` 關掉）
+
 ### 資訊查詢
 
 | 指令 | 說明 |
@@ -423,7 +445,7 @@ Skills 比 Commands 多出的 frontmatter 能力：
 
 | 指令 | 說明 |
 |------|------|
-| `/model` | 切換 AI 模型 |
+| `/model` | 切換 AI 模型。可加 `[1m]` 後綴啟用 1M context 版本（如 `/model claude-opus-4-6[1m]`、`opus[1m]`、`sonnet[1m]`），適合長 session 或大型 codebase；Pro / Max 使用 1M 版本會以 extra usage 計費。若覺得 Opus 4.7 token 消耗較重（新 tokenizer 壓縮比較低），可手動切回 `claude-opus-4-6` |
 | `/effort [low\|medium\|high\|xhigh\|max]` | 調整推理深度（Opus 限定；`xhigh` 為 4.7 新增，官方建議 coding / agentic 預設用 `xhigh`；捷徑：prompt 中輸入 `think` 自動設為 high） |
 | `/focus` | **Focus Mode**：隱藏所有中間過程（工具呼叫、檔案讀取等），只顯示最終結果。適合已信任模型執行能力、只想看產出的場景 |
 | `/theme` | 切換色彩主題 |
