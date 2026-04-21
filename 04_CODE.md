@@ -1013,6 +1013,178 @@ CLI 只能建立 / 管理 **scheduled** routine。要加 API 或 GitHub trigger 
 
 ---
 
+## Plugin 系統
+
+> **狀態：** 2026 年 Claude Code 推出的官方外掛機制，把 hooks / slash commands / skills / agents / MCP servers 打包成可安裝、可更新、可移除的單位。
+>
+> **官方文件：** [docs.claude.com/en/docs/claude-code/plugins](https://docs.claude.com/en/docs/claude-code/plugins)
+
+### 為什麼需要 Plugin
+
+沒有 plugin 之前，要把一套 CC 客製化分享給別人會很麻煩：
+
+- Hook 要手動寫進對方的 `settings.json`（路徑、matcher、command 全要對好）
+- Skill / command 要手動複製到 `~/.claude/skills/` 或 `.claude/commands/`
+- MCP server 要手動設定連線、認證
+- 要更新時重跑一遍
+
+Plugin 把這些雜事自動化——把一個 GitHub repo 本身變成「一鍵安裝、一鍵更新、一鍵移除」的單位。
+
+### Plugin 能自動註冊什麼 / 不能自動註冊什麼
+
+| 資源類型 | 自動註冊 | 說明 |
+|---------|:-------:|------|
+| **Hooks** | ✓ | 讀 `hooks/hooks.json`，用 `${CLAUDE_PLUGIN_ROOT}` 展開路徑 |
+| **Slash Commands** | ✓ | 放在 `commands/*.md` 會被掃到 |
+| **Skills** | ✓ | 放在 `skills/<name>/SKILL.md` 會被掃到 |
+| **Agents** | ✓ | 放在 `agents/*.md` 會被掃到 |
+| **MCP Servers** | ✓ | 由 manifest 宣告連線設定 |
+| **Statusline** | ✗ | **目前 spec 不支援**，使用者要手動改 `settings.json`（[見 cc-statusline case study](#plugin-case-study)） |
+
+### Plugin 的三個核心檔案
+
+最小可用 plugin 只需要以下三個 JSON（其他原始碼按慣例目錄擺放）：
+
+**1. `.claude-plugin/plugin.json`** — plugin 自描述檔
+
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "description": "What this plugin does",
+  "author": { "name": "Your Name", "url": "https://github.com/you" },
+  "homepage": "https://github.com/you/my-plugin",
+  "repository": "https://github.com/you/my-plugin",
+  "license": "MIT"
+}
+```
+
+**2. `.claude-plugin/marketplace.json`** — 讓 repo 本身變成一個 marketplace（可被 `plugin marketplace add` 加入）
+
+```json
+{
+  "name": "my-plugin",
+  "owner": { "name": "Your Name", "url": "https://github.com/you" },
+  "plugins": [
+    {
+      "name": "my-plugin",
+      "description": "...",
+      "version": "1.0.0",
+      "source": "./"
+    }
+  ]
+}
+```
+
+> 一個 marketplace 可以含多個 plugin（`plugins` 陣列），也可以和 plugin 名字同名（單一 plugin 的 repo 最常這樣做）。
+
+**3. `hooks/hooks.json`**（選用）— hooks 自動註冊表
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/my-hook.js"
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "Write|Edit",
+      "hooks": [{
+        "type": "command",
+        "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/file-tracker.js"
+      }]
+    }]
+  }
+}
+```
+
+**關鍵：`${CLAUDE_PLUGIN_ROOT}` 變數**
+
+這是 plugin 系統專用的路徑變數，CC 在執行 hook command 時會自動展開為該 plugin 的安裝目錄。**絕對不要寫死絕對路徑**——會在別人機器上壞掉。
+
+### 發布流程（作者視角）
+
+```
+your-plugin/
+├─ .claude-plugin/
+│  ├─ plugin.json
+│  └─ marketplace.json
+├─ hooks/
+│  ├─ hooks.json
+│  └─ my-hook.js
+├─ commands/            # 選用：slash commands
+│  └─ my-cmd.md
+├─ skills/              # 選用：skills
+│  └─ my-skill/
+│     └─ SKILL.md
+├─ agents/              # 選用：subagents
+│  └─ my-agent.md
+└─ README.md
+```
+
+1. 依上方結構建立 repo 並 push 到 GitHub
+2. 標版本：`git tag v1.0.0 && git push --tags`
+3. 使用者端：`claude plugin marketplace add <owner>/<repo>` 就能裝
+
+### 安裝流程（使用者視角）
+
+```bash
+# 第 1 步：把該 repo 當作 marketplace 加入（只做一次）
+claude plugin marketplace add SammyLin/cc-statusline
+
+# 第 2 步：從該 marketplace 安裝指定 plugin
+claude plugin install cc-statusline@cc-statusline
+#                     ^plugin 名    ^marketplace 名
+
+# 其他管理指令
+claude plugin list                   # 列出已安裝的 plugin
+claude plugin update <name>          # 更新
+claude plugin uninstall <name>       # 移除
+claude plugin marketplace list       # 列出所有 marketplace
+```
+
+安裝後 plugin 實際放在 `~/.claude/plugins/marketplaces/<marketplace>/`。
+
+**Anthropic 官方 marketplace：** `claude-plugins-official` 預設已註冊，裝官方 plugin（如 Figma MCP）直接 `claude plugin install figma@claude-plugins-official`，不需要 `marketplace add`。
+
+<a id="plugin-case-study"></a>
+### Case Study：cc-statusline 與 spec 缺口
+
+[SammyLin/cc-statusline](https://github.com/SammyLin/cc-statusline) 是個值得拿來當範例的小 plugin——展示 plugin 系統的**能做到**與**做不到**之處：
+
+**能做到（plugin 自動處理）：**
+- 5 個 hook（`SubagentStart` / `SubagentStop` / `PreCompact` / `PostToolUse` / `UserPromptSubmit`）的註冊完全靠 `hooks.json` 自動接上
+- 輔助檔案（`lib/`、各個 `hooks/*.js`）隨 plugin 一起安裝，路徑由 `${CLAUDE_PLUGIN_ROOT}` 解決
+- 更新：`claude plugin update cc-statusline` 一行完成
+
+**做不到（使用者必須手動）：** 啟用 statusline 本身還是要手動在 `~/.claude/settings.json` 加這段：
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node ~/.claude/plugins/marketplaces/cc-statusline/statusline.js",
+    "refreshInterval": 30
+  }
+}
+```
+
+原因是 CC plugin spec 目前**沒有 `statusLine` 這個欄位**——Anthropic 把 statusline 視為使用者層偏好而非套件功能，所以未納入 plugin manifest。這個限制放在「整個 plugin 存在目的就是 statusline」的場景就顯得很彆扭，是 plugin spec 目前的已知缺口。
+
+### 決策指南：什麼時候該做成 plugin？
+
+| 情境 | 建議 |
+|------|------|
+| 只你自己用的 hook / skill | 直接寫進 `~/.claude/settings.json` 或丟 `~/.claude/skills/` |
+| 團隊共用、跟專案綁定 | commit `.claude/` 目錄到 repo 根 |
+| 要跨多專案重用一整組工具（hook + skill + command + MCP） | 做成 plugin |
+| 要公開分享給社群 | 做成 plugin + 發佈到 GitHub |
+| 純 statusline | plugin 化幫助有限（見上方 case study），可考慮只 ship 腳本 + README |
+
+---
+
 ## Claude Code Desktop（Code 分頁）
 
 > **狀態：** 2026-04-14 大改版（需 Claude Desktop **v1.2581.0** 以上，macOS：Claude → Check for Updates；Windows：Help → Check for Updates）  
