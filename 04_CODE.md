@@ -2378,6 +2378,12 @@ Anthropic 於 **2026 年 4 月 4 日 12pm PT / 8pm BST** 正式執行：**訂閱
 
 > 相關討論：[Hacker News 討論串](https://news.ycombinator.com/item?id=47069299)、[The Register 報導](https://www.theregister.com/2026/02/20/anthropic_clarifies_ban_third_party_claude_access/)
 
+> **⚠️ 灰色地帶補充（2026-04-22）**：[OpenClaw 官方 docs](https://docs.openclaw.ai/providers/anthropic) 宣稱「Anthropic staff told us OpenClaw-style Claude CLI usage is allowed again」，範圍限於**官方 Claude CLI subprocess reuse** 與 `claude -p` pipe 模式（**不是**訂閱 token 直接授權給第三方 harness）。
+>
+> 此為 OpenClaw **單邊宣稱**，Anthropic **未發布任何反轉公告**；且 **2026-04-21 Pro 方案反而進一步移除 Claude Code 功能**，政策方向仍為**繼續收緊**。
+>
+> **結論**：以 Anthropic 官方最新公告為準；生產環境建議用 **API key**，不要依賴 OpenClaw docs 這條非正式說法。
+
 ---
 
 ### 算力緊縮下的方案試點（2026 年 4 月 20–21 日）

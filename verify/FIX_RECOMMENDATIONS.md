@@ -454,6 +454,63 @@ overall 耗盡後，Claude Code 會自動進入「Sonnet only」狀態，
 
 ---
 
+### ✅ 追加 #2 — 04_CODE.md line 2352–2379：第三方 Harness 政策需補 OpenClaw 反向宣稱註
+
+**問題摘要**
+原文描述的 2026-04-04 Anthropic 政策（訂閱額度不涵蓋第三方 harness）**技術上正確**，但網路流傳 [OpenClaw docs](https://docs.openclaw.ai/providers/anthropic) 的一段宣稱「Anthropic staff told us OpenClaw-style Claude CLI usage is allowed again」，讀者接觸到此說法會誤以為政策已反轉。
+
+驗證報告**未掃到此條**（04_CODE.md 的「方案與算力政策異動」段落屬 scoped 驗證外）。
+
+**獨立查證**（2026-04-22）
+
+OpenClaw docs 的精確範圍：
+> "Anthropic staff told us OpenClaw-style Claude CLI usage is allowed again,
+> so OpenClaw treats **Claude CLI reuse and `claude -p` usage** as sanctioned
+> for this integration unless Anthropic publishes a new policy."
+
+拆解：
+- 範圍限於**官方 Claude CLI subprocess reuse**、`claude -p` pipe 模式
+- **不是**訂閱 token 直接授權給第三方 harness
+- 末句自留免責條款「除非 Anthropic 公布新政策」
+- OpenClaw 自家都推 API key：「For long-lived gateway hosts, Anthropic API keys are still the clearest and most predictable production path.」
+
+Anthropic 立場（2026-04-22 為止）：
+- **無任何反轉公告**
+- 2026-04-21 Pro 方案反而移除 Claude Code 功能（政策**繼續收緊**）
+- The Register、VentureBeat、DEV、Medium 等主流報導方向一致
+
+**實際影響**
+- 讀者看 OpenClaw docs 可能誤以為「第三方 harness 訂閱接入又開放」
+- 真實情況是「OpenClaw 單邊解讀某個狹窄技術路徑被默許」
+- 若依此推斷生產環境用法，可能踩雷（Anthropic 可隨時變更默許範圍）
+
+**決議建議**
+在原章節末補一段「灰色地帶補充」，說明：
+1. OpenClaw docs 的精確範圍
+2. 這是單邊宣稱、非 Anthropic 正式反轉
+3. 2026-04-21 政策反而更緊
+4. 生產環境仍建議用 API key
+
+**擬改寫內容**
+
+```md
+> ⚠️ **灰色地帶補充（2026-04-22）**：OpenClaw 官方 docs 宣稱
+> 「Anthropic staff told us OpenClaw-style Claude CLI usage is allowed
+> again」，範圍限於**官方 Claude CLI subprocess reuse** 與 `claude -p`
+> pipe 模式（**不是**訂閱 token 直接授權給第三方 harness）。
+>
+> 此為 OpenClaw **單邊宣稱**，Anthropic **未發布任何反轉公告**；
+> 且 **2026-04-21 Pro 方案反而進一步移除 Claude Code 功能**，政策方向
+> 仍為**繼續收緊**。
+>
+> **結論**：以 Anthropic 官方最新公告為準；生產環境建議用 **API key**，
+> 不要依賴 OpenClaw docs 這條非正式說法。
+```
+
+**狀態**：✅ 討論完成、已套用至原文
+
+---
+
 ## 跨文件通用 Corrections（來自 SUMMARY.md 附錄）
 
 ### 📌 通用 #1 — `anthropic.com/pricing` → `claude.com/pricing`
