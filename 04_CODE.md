@@ -2325,7 +2325,7 @@ Ctrl+B "                # 上下分割視窗
 
 ---
 
-## 第三方工具政策異動（2026）
+## 方案與算力政策異動（2026）
 
 ### 訂閱額度限制第三方 Harness（2026 年 4 月 4 日起生效）
 
@@ -2355,6 +2355,60 @@ Anthropic 於 **2026 年 4 月 4 日 12pm PT / 8pm BST** 正式執行：**訂閱
 根本原因：第三方工具去除了 Claude Code 內建的速率限制，Agent 任務可無限量耗用 token，訂閱制在此使用情境下對 Anthropic 大幅虧損。
 
 > 相關討論：[Hacker News 討論串](https://news.ycombinator.com/item?id=47069299)、[The Register 報導](https://www.theregister.com/2026/02/20/anthropic_clarifies_ban_third_party_claude_access/)
+
+---
+
+### 算力緊縮下的方案試點（2026 年 4 月 20–21 日）
+
+2026 年 4 月下旬連續兩天發生的兩起事件，反映 agentic AI 工作流對訂閱制經濟學的衝擊。兩起事件**方向一致但程度不同**——一家直接停收新戶、一家做 2% 小規模試點——都指向同一個問題：**AI 算力正在變成稀缺資源，flat-rate 訂閱撐不住 agentic workload**。
+
+#### 事件一：GitHub Copilot 暫停新訂閱（2026-04-20）
+
+GitHub 正式公告暫停 **Copilot Pro / Pro+ / Student** 的新 sign-up，Free plan 成為個人戶**唯一**能新申請的方案。
+
+| 變動項目 | 說明 |
+|---------|------|
+| **新 sign-up** | Pro、Pro+、Student 暫停；Free 仍開放 |
+| **Opus 模型存取** | 從 Pro plan 移除；Opus 4.7 僅 Pro+ 保留；Opus 4.5 / 4.6 從 Pro+ 移除 |
+| **既有訂戶** | 可繼續使用；不滿意者於 **2026-05-20 前**取消可退剩餘時間 |
+| **用量透明度** | VS Code 與 Copilot CLI 新增用量顯示與接近上限警告 |
+| **官方理由** | Long-running 並行 agentic session 消耗遠超原設計，flat-rate 結構撐不住 |
+
+> 官方公告：[GitHub Blog — Changes to Copilot Individual Plans](https://github.blog/news-insights/company-news/changes-to-github-copilot-individual-plans/)
+
+#### 事件二：Anthropic 對 Pro 方案的 2% 試點（2026-04-21）
+
+2026-04-21，社群在 X 上發現 Anthropic 定價頁面悄悄把 **Claude Code 從 Pro ($20) 方案的功能列表拿掉**，桌面與行動版 pricing 皆同步更新。意味如果試點全面推展，**新訂戶要用 Claude Code 將必須至少訂 Max 5x ($100/月)**。
+
+Anthropic 員工 **Amol Avasare** 隨後在 X 澄清：
+
+> "Running a small test on **~2% of new prosumer signups**. **Existing Pro and Max subscribers aren't affected.**"
+>
+> "If we ever made changes affecting existing users, we'd notify officially—not let people find out from X or Reddit screenshots."
+
+**目前（2026-04-22）可確認的狀態：**
+
+| 類別 | 影響 |
+|------|------|
+| 既有 Pro 訂戶 | **完全不受影響**，Claude Code 照常可用 |
+| 98% 的新 Pro sign-up | **不受影響** |
+| 2% 的新 Pro sign-up（試點對象） | 定價頁可能顯示 Pro 不含 Claude Code |
+| Max 5x / Max 20x / Team / Enterprise | **完全不受影響** |
+
+**為什麼值得關注：**
+
+- 這是 **Anthropic 第一次**觸碰到訂閱制的「功能階梯」——以往差異主要在用量（Max 5x / 20x 的倍數）而非**能用什麼產品**
+- 若試點數據支持全面推展，意味 **Claude Code 會正式從「Pro 就能用」往「需 Max 才能用」遷移**
+- 與 4/4 OpenClaw 政策、GitHub Copilot 暫停新訂閱形成 **同一訊號**：2026 年 Q2 是 AI 公司重新定價算力的拐點
+
+**工程師建議（截至 2026-04-22）：**
+- **已是 Pro 訂戶**：不用急著升級，官方明確說既有訂戶不受影響；持續關注官方 Email 公告
+- **打算新訂閱且主力用 Claude Code**：不賭 2% 試點運氣，直接訂 Max 5x；或先試 Free 再依用量決定
+- **重度用戶**：Max 5x 的用量差距本來就大，價差是合理的
+
+> 相關討論：[Where's Your Ed At 報導](https://www.wheresyoured.at/news-anthropic-removes-pro-cc/)、[The New Stack 報導](https://thenewstack.io/anthropic-claude-code-limits/)、[Hacker News 討論串](https://news.ycombinator.com/item?id=47855565)
+>
+> 本節資訊截至 **2026-04-22**，事件仍在發展中——若 Anthropic 後續有正式公告，以官方為準。
 
 ---
 
