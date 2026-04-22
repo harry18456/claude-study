@@ -436,6 +436,7 @@ Skills 比 Commands 多出的 frontmatter 能力：
 | `/status` | 顯示版本、模型、帳號、連線狀態（Claude 執行中也可用） |
 | `/cost` | 查看目前 session 的 token 用量 |
 | `/context` | 視覺化顯示 context 用量與警告 |
+| `/recap` | 顯示目前 session 的一句話摘要（做了什麼、卡在哪、下一步）；另有自動觸發機制，詳見「Session Recap」一節 |
 | `/skills` | 列出可用的 skills |
 | `/stats` | 視覺化顯示每日用量、session 歷史、連續使用紀錄 |
 | `/insights` | 分析你所有歷史 session，生成個人化 HTML 報告（使用模式、成就、摩擦點、建議功能），存放在 `~/.claude/usage-data/` |
@@ -556,6 +557,47 @@ Claude Code 在各平台上使用的 shell：
 ```
 @src/auth/login.ts 這個函式有什麼問題？
 ```
+
+### Session Recap（切回 terminal 自動摘要）
+
+多開 Claude Code 的人常有這個痛：開三四個 terminal 分別跑不同 repo，切去開會一小時回來，忘了每個 session 上次做到哪、卡在什麼。Scroll 翻對話費力，問 Claude「剛剛我們在幹嘛」又浪費一個 turn。
+
+**Session Recap** 在你切回 terminal 時自動吐一句話 recap：做了什麼、卡在哪、下一步。範例：
+
+> 7 張 billing table migrate 完 4 張，invoices.ts 的 FK constraint 還在 fail，下一步修 line 142 的 foreign key。
+
+#### 自動觸發條件
+
+不是無條件出現，而是以下**同時成立**才生成（生成在背景完成，切回來就已經備妥）：
+
+| 條件 | 說明 |
+|------|------|
+| 距上次 completed turn ≥ 3 分鐘 | 短暫切 tab 不會被打擾 |
+| terminal 此刻 unfocused | 你不在這個視窗 |
+| session 已累積 ≥ 3 turns | 剛開場的 session 不做 |
+| 上一次 recap 不是連續 | 不會連續跳兩次 |
+| 非互動模式 | 永遠跳過（CI、`-p` 模式等） |
+
+#### 手動與設定
+
+| 方式 | 行為 |
+|------|------|
+| `/recap` | 隨時叫出當前 session 的 recap |
+| `/config` → **Session recap** | 切換自動 recap 開關 |
+| `CLAUDE_CODE_ENABLE_AWAY_SUMMARY=0` | 環境變數強制**關**（覆蓋 `/config`） |
+| `CLAUDE_CODE_ENABLE_AWAY_SUMMARY=1` | 環境變數強制**開**（覆蓋 `/config`） |
+
+#### 版本與覆蓋範圍
+
+- **v2.1.108 引入**，一般用戶預設開啟
+- **v2.1.110 擴展**至 Bedrock / Vertex / Foundry 與 `DISABLE_TELEMETRY` 環境
+- 目前**全平台、全 provider 預設 on**
+
+#### 重要釐清
+
+- **不是 cross-session 記憶**：每個 session 自己產、自己看，session 之間**不共享**
+- **不取代 CLAUDE.md 或筆記**：只是一句話的 entry point，讓你快速 load 回心智模型
+- **真正的價值在降低切換成本**：terminal agent 的痛不是「忘記做了什麼」，是「回來重新 load 心智模型那段時間」。一句話 recap 把 entry cost 拉下來，對一天多 repo 切換的人尤其有感
 
 ---
 

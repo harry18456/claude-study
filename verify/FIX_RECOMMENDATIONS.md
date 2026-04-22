@@ -511,6 +511,46 @@ Anthropic 立場（2026-04-22 為止）：
 
 ---
 
+### ✅ 追加 #3 — 04_CODE.md：補 Session Recap（v2.1.108 新 feature）
+
+**問題摘要**
+Claude Code v2.1.108（2026-Q2）引入 **Session Recap**：切回 terminal 時自動顯示一句話 recap（做了什麼、卡在哪、下一步）。原文**完全沒提**此 feature。
+
+此為 **新增 feature 補遺**，非原文錯誤；驗證報告也不會掃到「缺漏」。
+
+**獨立查證**（2026-04-22）
+
+官方 [interactive-mode 文件 — Session recap](https://code.claude.com/docs/en/interactive-mode#session-recap) 逐字：
+> "When you return to the terminal after stepping away, Claude Code shows
+> a one-line recap of what happened in the session so far. The recap
+> generates in the background **once at least three minutes have passed
+> since the last completed turn and the terminal is unfocused**... Recaps
+> only appear once the session has **at least three turns**, and **never
+> twice in a row**."
+>
+> "Session recap is on by default for every plan and provider. The recap
+> is always skipped in non-interactive mode."
+
+官方 [env-vars 文件](https://code.claude.com/docs/en/env-vars) 確認：
+- `CLAUDE_CODE_ENABLE_AWAY_SUMMARY=0` → 強制關
+- `CLAUDE_CODE_ENABLE_AWAY_SUMMARY=1` → 強制開
+
+版本脈絡（[v2.1.108 release notes](https://github.com/anthropics/claude-code/releases/tag/v2.1.108)）：
+- v2.1.108 引入、一般用戶預設開
+- v2.1.110 擴展至 Bedrock / Vertex / Foundry / `DISABLE_TELEMETRY` 環境
+- 現在全平台、全 provider default on
+
+**決議建議**
+採用「兩處同動」：
+1. `## Slash Commands` → `### 資訊查詢` 表格補 `/recap` 一行（讀者查 slash command 找得到）
+2. `## 互動模式的 Shell 環境` 底下新增 `### Session Recap（切回 terminal 自動摘要）` 詳細介紹
+
+詳細段落涵蓋：demo 範例、5 條自動觸發條件、4 種手動/設定方式、版本脈絡、**重要釐清**（不是 cross-session 記憶、不取代 CLAUDE.md、核心價值在降低 entry cost）。
+
+**狀態**：✅ 討論完成、已套用至原文
+
+---
+
 ## 跨文件通用 Corrections（來自 SUMMARY.md 附錄）
 
 ### 📌 通用 #1 — `anthropic.com/pricing` → `claude.com/pricing`
