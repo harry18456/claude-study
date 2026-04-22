@@ -456,39 +456,44 @@ overall 耗盡後，Claude Code 會自動進入「Sonnet only」狀態，
 
 ### ✅ 追加 #2 — 04_CODE.md line 2352–2379：第三方 Harness 政策需補 OpenClaw 反向宣稱註
 
+> ⚠️ **本條已修正範圍描述**：初版（commit `2b94511`）寫「範圍限於 `claude -p` pipe 模式（不是訂閱 token 直接授權）」，此描述**錯誤**。OpenClaw docs 的 "Claude CLI reuse" 實際上**涵蓋 OAuth 訂閱認證整包**（OpenClaw 呼叫官方 CLI，CLI 帶著訂閱 OAuth token 走配額）。本條於 commit (updated) 改寫，並加入 Peter Steinberger 帳號被暫停事件。
+
 **問題摘要**
-原文描述的 2026-04-04 Anthropic 政策（訂閱額度不涵蓋第三方 harness）**技術上正確**，但網路流傳 [OpenClaw docs](https://docs.openclaw.ai/providers/anthropic) 的一段宣稱「Anthropic staff told us OpenClaw-style Claude CLI usage is allowed again」，讀者接觸到此說法會誤以為政策已反轉。
+原文描述的 2026-04-04 Anthropic 政策（訂閱額度不涵蓋第三方 harness）**技術上正確**，但網路流傳 [OpenClaw docs](https://docs.openclaw.ai/providers/anthropic) 的宣稱「Anthropic staff told us OpenClaw-style Claude CLI usage is allowed again」與中文報導（如 [koc.com.tw](https://www.koc.com.tw/archives/640085)）會讓讀者誤以為政策已反轉。
 
 驗證報告**未掃到此條**（04_CODE.md 的「方案與算力政策異動」段落屬 scoped 驗證外）。
 
-**獨立查證**（2026-04-22）
+**獨立查證**（2026-04-22，覆核版）
 
-OpenClaw docs 的精確範圍：
-> "Anthropic staff told us OpenClaw-style Claude CLI usage is allowed again,
-> so OpenClaw treats **Claude CLI reuse and `claude -p` usage** as sanctioned
+OpenClaw docs 原話與真實範圍：
+> "Anthropic Claude CLI / **subscription auth** inside OpenClaw: Anthropic
+> staff told us this usage is allowed again"
+>
+> "OpenClaw treats Claude CLI reuse and `claude -p` usage as sanctioned
 > for this integration unless Anthropic publishes a new policy."
 
-拆解：
-- 範圍限於**官方 Claude CLI subprocess reuse**、`claude -p` pipe 模式
-- **不是**訂閱 token 直接授權給第三方 harness
-- 末句自留免責條款「除非 Anthropic 公布新政策」
-- OpenClaw 自家都推 API key：「For long-lived gateway hosts, Anthropic API keys are still the clearest and most predictable production path.」
+- 範圍為「**Claude CLI + 訂閱 OAuth 認證**」整包（OpenClaw 把官方 CLI 當 backend，帶著你的訂閱 OAuth token 走配額）
+- 不是「只有 `-p` pipe 被允許」這種狹窄切割
 
-Anthropic 立場（2026-04-22 為止）：
-- **無任何反轉公告**
-- 2026-04-21 Pro 方案反而移除 Claude Code 功能（政策**繼續收緊**）
-- The Register、VentureBeat、DEV、Medium 等主流報導方向一致
+2026-04-10 前後事件（TechCrunch、Axios、多家媒體）：
+- OpenClaw 創辦人 **Peter Steinberger 自述**：「working on getting the claude -p fallback feature working after Boris [Cherny, Claude Code PM] confirmed that it's a classifier bug and not intentional. **We're still blocked** and it seems that got me banned too.」
+- Peter 本人 Anthropic 帳號**被暫時停權**（suspicious activity），貼文熱搜後快速 reinstate
+- Claude Code PM Boris Cherny 私下確認是 classifier bug，但實務 classifier 仍運作
 
-**實際影響**
-- 讀者看 OpenClaw docs 可能誤以為「第三方 harness 訂閱接入又開放」
-- 真實情況是「OpenClaw 單邊解讀某個狹窄技術路徑被默許」
-- 若依此推斷生產環境用法，可能踩雷（Anthropic 可隨時變更默許範圍）
+OpenClaw docs 自家同時註明（生產推薦仍是 API key）：
+> "For long-lived gateway hosts, Anthropic API keys are still the clearest
+> and most predictable production path."
+
+**實際狀態（三方矛盾）**
+1. **理論允許**：Anthropic staff 私下說 classifier bug not intentional
+2. **實務仍被擋**：classifier 實測仍攔 OpenClaw-style 流量
+3. **嘗試繞過有帳號風險**：Peter 本人因嘗試 workaround 被短暫停權
 
 **決議建議**
 在原章節末補一段「灰色地帶補充」，說明：
-1. OpenClaw docs 的精確範圍
-2. 這是單邊宣稱、非 Anthropic 正式反轉
-3. 2026-04-21 政策反而更緊
+1. OpenClaw docs 的真實範圍（CLI + OAuth，不是只有 `-p`）
+2. 三方矛盾狀態（理論允許／實務被擋／繞過有風險）
+3. Peter Steinberger 帳號停權事件為證
 4. 生產環境仍建議用 API key
 
 **擬改寫內容**
@@ -496,18 +501,24 @@ Anthropic 立場（2026-04-22 為止）：
 ```md
 > ⚠️ **灰色地帶補充（2026-04-22）**：OpenClaw 官方 docs 宣稱
 > 「Anthropic staff told us OpenClaw-style Claude CLI usage is allowed
-> again」，範圍限於**官方 Claude CLI subprocess reuse** 與 `claude -p`
-> pipe 模式（**不是**訂閱 token 直接授權給第三方 harness）。
+> again」，**範圍涵蓋 Claude CLI + 訂閱 OAuth 認證**整包使用。
 >
-> 此為 OpenClaw **單邊宣稱**，Anthropic **未發布任何反轉公告**；
-> 且 **2026-04-21 Pro 方案反而進一步移除 Claude Code 功能**，政策方向
-> 仍為**繼續收緊**。
+> 但此為 OpenClaw 單邊宣稱，有三個關鍵 caveat：
+> 1. Anthropic 未發布任何官方反轉公告
+> 2. Peter Steinberger（OpenClaw 創辦人）自述實務仍被擋
+>    （"We're still blocked"），Boris Cherny 私下說是「classifier bug」
+>    但 classifier 仍運作
+> 3. 2026-04-10 前後 Peter 本人 Anthropic 帳號因嘗試 workaround
+>    被暫時停權（熱搜後 reinstate）—— 嘗試繞過有帳號風險
 >
-> **結論**：以 Anthropic 官方最新公告為準；生產環境建議用 **API key**，
-> 不要依賴 OpenClaw docs 這條非正式說法。
+> OpenClaw docs 自家同時推 API key：「API keys are still the clearest
+> and most predictable production path」。
+>
+> 結論：目前處於「理論允許／實務仍被擋／嘗試繞過有帳號風險」三方矛盾
+> 狀態。生產環境請用 API key。
 ```
 
-**狀態**：✅ 討論完成、已套用至原文
+**狀態**：✅ 討論完成、已套用至原文（含 2026-04-22 覆核後的範圍修正）
 
 ---
 
