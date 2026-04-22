@@ -346,7 +346,7 @@ Anthropic 的 Engineering Blog 揭示了 Managed Agents 的內部架構，核心
 | 活躍 runtime | $0.08 / session-hour（以毫秒計量） |
 | Web search | $10 / 1,000 次搜尋 |
 
-> 定價資訊來自發布時的報導，實際費用以 [官方定價頁面](https://claude.com/pricing) 為準。
+> 定價資訊來自發布時的報導，實際費用以 [官方定價頁面](https://www.anthropic.com/pricing) 為準。
 
 **成本控制建議：**
 - Agent 與 Environment 建立一次、重複引用 — 不需每次重建

@@ -91,11 +91,8 @@ console.log(message.content[0].text);
 | `max_tokens` | ✓ | 回應的最大 token 數 |
 | `messages` | ✓ | 對話陣列，`role` 為 `user` 或 `assistant` |
 | `system` | — | 系統指令，設定 Claude 的角色與行為 |
-| `temperature` | — | 創意程度 0.0–1.0（預設 1.0）。⚠️ **Opus 4.7 不接受非預設值**，設定會回 400 |
-| `top_p` | — | 核採樣參數（通常不需調整）。⚠️ **Opus 4.7 不接受非預設值**，設定會回 400 |
-| `top_k` | — | top-K 採樣參數。⚠️ **Opus 4.7 不接受非預設值**，設定會回 400 |
-
-> **Opus 4.7 breaking change**：從 4.6 升級到 4.7 前，請從請求中移除任何 `temperature`、`top_p`、`top_k` 覆寫，否則 API 會回傳 400 error。詳見 [官方 4.7 發布說明](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7)。
+| `temperature` | — | 創意程度 0.0–1.0（預設 1.0） |
+| `top_p` | — | 核採樣參數（通常不需調整） |
 
 ### 回應格式
 
@@ -152,9 +149,9 @@ response = client.messages.create(
 > - **Extended thinking → Adaptive thinking**：4.7 不再支援 `thinking` block / `type: "thinking"` 的 Extended thinking API。若你的程式碼用了 Extended thinking，遷移時需改用 Adaptive thinking 參數，否則 4.7 會忽略或報錯
 > - 新增 **`xhigh`** effort level（介於 `high` 與 `max` 之間），官方建議 coding / agentic 預設用 `xhigh`
 > - **新 tokenizer**：同樣 1M context 但壓縮比不同（~555k 字 vs 4.6 的 ~750k 字），prompt 如果已經接近 context 上限，升級後可能需要重新調整
-> - 另外：Claude Sonnet 4 / Opus 4 已 deprecated，**2026-06-15 退役**；Claude Haiku 3 **2026-04-20 退役**（已於 2026-02-19 通知）
+> - 另外：Claude Sonnet 4 / Opus 4 已 deprecated，**2026-06-15 退役**；Claude Haiku 3 **2026-04-19 退役**
 
-**API 費用計算方式：** 依 input tokens + output tokens 計費，詳見 [官方定價](https://claude.com/pricing)。
+**API 費用計算方式：** 依 input tokens + output tokens 計費，詳見 [官方定價](https://www.anthropic.com/pricing)。
 
 ---
 
@@ -210,8 +207,7 @@ for await (const chunk of stream) {
 
 ### Token 基本概念
 
-- 1 個 token ≈ 0.75 個英文單字 ≈ 0.5 個中文字（Sonnet 4.6 及以前模型的近似值）
-- ⚠️ **Opus 4.7 需另外估算**：新 tokenizer 壓縮比更高，同內容消耗 1.0–1.35× token（見 [whats-new-claude-4-7](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7)）
+- 1 個 token ≈ 0.75 個英文單字 ≈ 0.5 個中文字
 - 每次 API 呼叫消耗 input tokens（你的問題）+ output tokens（Claude 的回答）
 - 使用 `response.usage` 查看實際用量
 

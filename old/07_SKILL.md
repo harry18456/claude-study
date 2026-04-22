@@ -26,14 +26,11 @@ Skill 是以 Markdown 格式定義的**可重用工作流程**。Claude Code 讀
 
 | 層級 | 路徑 | 作用範圍 |
 |------|------|---------|
-| **Enterprise**（管理式） | 企業 managed settings 指定 | 組織全體使用者 |
-| **Personal**（全域個人） | `~/.claude/skills/<skill>/SKILL.md` | 你的所有專案 |
-| **Project**（專案） | `.claude/skills/<skill>/SKILL.md` | 僅本專案 |
-| **Plugin**（插件） | `<plugin>/skills/<skill>/SKILL.md` | 啟用該插件處 |
+| **全域** | `~/.claude/skills/` | 所有 Claude Code session |
+| **專案** | `.claude/skills/`（repo 根目錄） | 只在此 repo 有效 |
+| **插件包** | `~/.claude/plugins/` | 由插件系統管理 |
 
-**同名衝突時的優先順序：** Enterprise > Personal > Project
-
-插件 skill 透過 `plugin-name:skill-name` namespace 獨立，**不會與上述三層同名競爭**。
+**載入優先順序：** 專案 skills > 全域 skills > 插件 skills
 
 > **Commands 與 Skills 的關係：** 早期 Claude Code 有兩個獨立系統——`~/.claude/commands/*.md`（指令）和 `~/.claude/skills/*/SKILL.md`（技能）。**兩者現已合併**，放在任一位置都會產生相同的 slash command 介面。建議統一用 Skills（`skills/` 目錄），因為它支援更多功能（frontmatter 控制、supporting files、動態 context 注入）。`commands/` 目錄仍可用，但屬舊式寫法。
 
@@ -180,25 +177,16 @@ description: 分析 git diff 並準備 PR 說明
 
 ### Frontmatter 欄位說明
 
-**所有欄位皆為選填**；只有 `description` 是「建議填」（影響 Claude 判斷觸發）。
-
 | 欄位 | 必填 | 說明 |
 |------|------|------|
-| `name` | 否 | skill 名稱（即 slash command）。省略時使用目錄名 |
-| `description` | 建議 | **觸發機制的核心**，Claude 靠此判斷何時使用。省略時使用 body 第一段。與 `when_to_use` 合計截斷於 1,536 字元 |
-| `when_to_use` | 否 | 額外觸發情境（trigger phrase、範例請求） |
-| `argument-hint` | 否 | 補全時顯示預期參數（例：`[issue-number]`） |
-| `arguments` | 否 | 位置參數命名，對應 skill 內 `$name` 變數替換 |
-| `allowed-tools` | 否 | skill active 時**免詢問**使用的工具清單。**注意：不是限制**；其他工具仍可呼叫，但仍受 permission 設定管 |
-| `context` | 否 | `fork` = 在獨立 subagent 執行，隔離 context |
-| `agent` | 否 | 搭配 `context: fork`，指定 **subagent type 名稱**（如 `Explore`、`Plan`、`general-purpose` 或自訂）。省略則用 `general-purpose` |
-| `disable-model-invocation` | 否 | `true` = 只有使用者能手動呼叫（適合 `/deploy`、`/commit` 等副作用指令） |
-| `user-invocable` | 否 | `false` = 從 `/` 選單隱藏，只有 Claude 能自動觸發（適合背景知識型 skill） |
-| `model` | 否 | 此 skill 啟用時使用的 model（同 `/model` 可用值） |
-| `effort` | 否 | effort level（`low`/`medium`/`high`/`xhigh`/`max`） |
-| `paths` | 否 | glob patterns 限制 skill 只在編輯匹配檔案時自動觸發 |
-| `hooks` | 否 | skill 生命週期 hooks |
-| `shell` | 否 | 執行 `` !`command` `` 用的 shell（`bash` 預設 / `powershell`） |
+| `name` | ✓ | skill 的識別名稱（即 slash command 名稱） |
+| `description` | ✓ | **觸發機制的核心**，Claude 靠此判斷何時使用（詳見下方） |
+| `compatibility` | — | 相依需求說明（e.g., `需要 gh CLI`） |
+| `allowed-tools` | — | 限制可用工具（e.g., `[Bash, Read, Write]`） |
+| `context` | — | `fork` = 在獨立子 agent 執行，隔離 context |
+| `agent` | — | `true` = 以 agent 模式運行 |
+| `disable-model-invocation` | — | `true` = 只有使用者能手動呼叫，Claude 不會自動觸發（適合 `/deploy`、`/commit` 等有副作用的指令） |
+| `user-invocable` | — | `false` = 只有 Claude 能自動觸發，不出現在 `/help`（適合背景知識型 skill） |
 
 ### description 的重要性
 
@@ -357,17 +345,7 @@ my-skill/
 1. 建立一個獨立的 skill 插件 repo
 2. 透過 Claude Code 的插件系統安裝：
    ```bash
-   # 先註冊 marketplace
-   /plugin marketplace add your-org/claude-skills-pack
-
-   # 再安裝指定 skill
-   /plugin install <skill-name>@your-org-claude-skills-pack
-   ```
-
-   官方 marketplace 上的插件可直接安裝：
-
-   ```bash
-   /plugin install code-review@claude-plugins-official
+   claude plugins install github:your-org/claude-skills-pack
    ```
 
 ### 版本控制建議

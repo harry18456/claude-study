@@ -44,21 +44,36 @@ MCP：Claude 連接外部工具
 
 ## MCP Server 類型
 
-### 官方與社群常用 MCP Servers
+### 官方與第一方 MCP Servers（2026-Q2 活躍版本）
 
-| 類別 | MCP Server | 功能 |
-|------|-----------|------|
-| **檔案系統** | `@modelcontextprotocol/server-filesystem` | 讀寫本機檔案目錄 |
-| **資料庫** | `@modelcontextprotocol/server-postgres` | 查詢 PostgreSQL |
-| **資料庫** | `@modelcontextprotocol/server-sqlite` | 讀寫 SQLite |
-| **版本控制** | `@modelcontextprotocol/server-github` | GitHub repo、PR、Issues |
-| **搜尋** | `@modelcontextprotocol/server-brave-search` | Brave 網路搜尋 |
-| **瀏覽器** | `@modelcontextprotocol/server-puppeteer` | 操控瀏覽器 |
-| **溝通** | Slack MCP | 讀寫 Slack 頻道 |
-| **設計** | Figma MCP | 讀取設計稿資訊 |
-| **監控** | Sentry MCP | 查詢錯誤報告 |
+| 類別 | MCP Server | 維護者 |
+|------|-----------|--------|
+| **檔案系統** | [`@modelcontextprotocol/server-filesystem`](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem) | Anthropic（官方 reference） |
+| **網頁抓取** | [`@modelcontextprotocol/server-fetch`](https://github.com/modelcontextprotocol/servers/tree/main/src/fetch) | Anthropic（官方 reference） |
+| **Git（本機）** | [`@modelcontextprotocol/server-git`](https://github.com/modelcontextprotocol/servers/tree/main/src/git) | Anthropic（官方 reference） |
+| **記憶** | [`@modelcontextprotocol/server-memory`](https://github.com/modelcontextprotocol/servers/tree/main/src/memory) | Anthropic（官方 reference） |
+| **資料庫** | [`@supabase/mcp-server-supabase`](https://github.com/supabase-community/supabase-mcp) | Supabase（第一方） |
+| **資料庫** | [`@neondatabase/mcp-server-neon`](https://github.com/neondatabase/mcp-server-neon) | Neon（第一方，限 Neon Postgres） |
+| **版本控制** | [`github/github-mcp-server`](https://github.com/github/github-mcp-server) | **GitHub 官方** |
+| **搜尋** | [`@brave/brave-search-mcp-server`](https://github.com/brave/brave-search-mcp-server) | **Brave 官方** |
+| **瀏覽器** | [`@playwright/mcp`](https://github.com/microsoft/playwright-mcp) | **Microsoft 官方** |
+| **溝通** | [Slack 官方 remote MCP](https://docs.slack.dev/changelog/2026/02/17/slack-mcp/) | **Slack 官方**（2026-02 推出） |
+| **設計** | [Figma MCP](https://www.figma.com/developers/mcp) | **Figma 官方** |
+| **監控** | [`@sentry/mcp-server`](https://github.com/getsentry/sentry-mcp) | **Sentry 官方** |
 
-> 完整清單：[modelcontextprotocol.io/servers](https://modelcontextprotocol.io/servers)
+> 完整目錄：[modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers) 與 [MCP Registry](https://registry.modelcontextprotocol.io/)
+
+### ⚠️ 歷史 Reference Servers（已歸檔，不建議新專案使用）
+
+下列五個 server 為 Anthropic 早期官方 reference 實作，**已於 2025-05-29 整批歸檔**至 [`modelcontextprotocol/servers-archived`](https://github.com/modelcontextprotocol/servers-archived)。歸檔後**不再收安全修補與 bug fix**（例：postgres server 有已知 SQL injection 案例）。若仍在 npm 上找到這些套件，請改用下表的繼任版本。
+
+| 已歸檔 | 建議改用 |
+|---|---|
+| `@modelcontextprotocol/server-postgres` | Supabase MCP 或 Neon MCP |
+| `@modelcontextprotocol/server-sqlite` | ⚠️ 無第一方繼任；社群版需自行評估安全性 |
+| `@modelcontextprotocol/server-github` | `github/github-mcp-server`（GitHub 官方） |
+| `@modelcontextprotocol/server-brave-search` | `@brave/brave-search-mcp-server`（Brave 官方） |
+| `@modelcontextprotocol/server-puppeteer` | `@playwright/mcp`（Microsoft 官方） |
 
 ---
 
@@ -66,7 +81,17 @@ MCP：Claude 連接外部工具
 
 ### 設定格式
 
-MCP server 設定存放於 `~/.claude.json`（全域）或 `.claude/settings.json`（專案層級）。
+Claude Code 的 MCP 設定有三種 scope（作用範圍）：
+
+| Scope | 載入於 | 可隨 git 分享 | 存放位置 |
+|---|---|---|---|
+| **Local**（預設） | 當前專案（僅自己） | ❌ | `~/.claude.json`（該專案路徑下） |
+| **Project**（團隊共用） | 當前專案（全隊） | ✅ 提交 `.mcp.json` | `.mcp.json`（專案根目錄） |
+| **User**（跨專案） | 你的所有專案 | ❌ | `~/.claude.json`（根層級） |
+
+> ⚠️ `.mcp.json` 與 `.claude/settings.json` 是**不同檔案**。後者是 Claude Code 的一般設定（hooks、permissions 等），**不含 MCP server 設定**。
+
+團隊共用的 `.mcp.json` 範例（可 commit 進 repo）：
 
 ```json
 {
@@ -80,23 +105,30 @@ MCP server 設定存放於 `~/.claude.json`（全域）或 `.claude/settings.jso
       ]
     },
     "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server"
+      ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
       }
     },
-    "postgres": {
+    "supabase": {
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://localhost/mydb"
+        "@supabase/mcp-server-supabase",
+        "--access-token",
+        "sbp_..."
       ]
     }
   }
 }
 ```
+
+個人專屬設定建議透過 CLI 寫入（見下節「透過 CLI 新增」），避免手動編輯 `~/.claude.json`。
 
 ### 透過 CLI 新增
 
