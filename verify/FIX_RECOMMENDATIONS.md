@@ -393,6 +393,67 @@ to Expand AI Labs Unit》；Anthropic 官方於 2026-01 重組公告後才對外
 
 ---
 
+## 追加發現（討論中新發現、不在原 Top 10）
+
+### ✅ 追加 #1 — 01_GENERAL.md line 245–259：Max 方案「兩層限額」缺時間脈絡
+
+**問題摘要**
+原文敘述技術上正確（採納 2025-11-24 Anthropic 公告的新機制），但**缺少時間脈絡**與「新舊機制差異」說明，導致熟悉舊機制（2025-11-24 前）的讀者（如本次討論用戶）產生衝突記憶。
+
+驗證報告**未掃到此條**（因為文章陳述本身不算「硬性錯誤」，只是資訊不完整）。
+
+**獨立查證**（2026-04-22）
+
+2025-11-24 Anthropic 官方公告逐字：
+> "We've increased your limits and **removed the Opus cap**, so you can use
+> Opus 4.5 up to your overall limit. **Sonnet now has its own limit**—it's
+> set to match your previous overall limit, so you can use just as much as
+> before."
+
+時間軸對照：
+- **2025-11-24 前**：overall limit + Opus 專屬 cap；Sonnet only 狀態仍扣 overall、僅降速
+- **2025-11-24 後**：移除 Opus cap，改為 Sonnet 獨立 limit（匹配原 overall）
+
+且官方公告與 Support docs 存在不一致（[claude-code issue #12487](https://github.com/anthropics/claude-code/issues/12487)，截至 2026-04 未獲官方回應）：
+- 公告說「Sonnet now has its own limit」（獨立）
+- Support docs 說「usage limits shared across Claude and Claude Code」（共用）
+
+**實際影響**
+- 老用戶看新機制敘述會以為記憶出錯
+- 新用戶若查到 Support docs 會誤以為 Sonnet only 仍扣 overall
+- 兩派讀者都會對「到底哪個版本是真的」產生不信任
+
+**決議建議**
+補時間脈絡註記 + Support docs 不一致警告，讓讀者知道：
+1. 新機制從 2025-11-24 起
+2. 舊記憶不是錯，是過時
+3. 官方文件本身有不一致，以系統實際顯示為準
+
+**擬改寫內容**
+
+```md
+### Max 方案的兩層限額
+
+Max 方案有**兩個獨立的每週限額**（2025-11-24 起生效的新機制）：
+
+[原 ASCII 圖表，第二層標示「獨立配額」「匹配先前的 overall 額度」]
+
+overall 耗盡後，Claude Code 會自動進入「Sonnet only」狀態，
+使用**獨立的 Sonnet 配額**（不再扣 overall）。
+
+> **歷史脈絡**：2025-11-24 前，Max 方案是「overall + Opus cap」結構；
+> Sonnet only 狀態仍扣 overall、僅降速。2025-11-24 Anthropic 公告移除
+> Opus cap、改為 Sonnet 獨立限額。
+>
+> ⚠️ **2026-04 注意**：官方公告與 Support docs 曾存在不一致
+> （見 claude-code#12487，截至 2026-04 未獲官方回應）。
+> 實務上請以系統顯示的配額數字為準。
+```
+
+**狀態**：✅ 討論完成、已套用至原文
+
+---
+
 ## 跨文件通用 Corrections（來自 SUMMARY.md 附錄）
 
 ### 📌 通用 #1 — `anthropic.com/pricing` → `claude.com/pricing`

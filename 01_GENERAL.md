@@ -244,19 +244,25 @@ Anthropic **預設會使用你的對話來訓練模型**。若不希望被使用
 
 ### Max 方案的兩層限額
 
-Max 方案有**兩個獨立的用量限額**：
+Max 方案有**兩個獨立的每週限額**（2025-11-24 起生效的新機制）：
 
 ```
 ┌─────────────────────────────────────────────┐
-│  限額 1：所有模型共用（Opus + Sonnet + ...）  │  ← 先耗盡
+│  限額 1：overall limit（所有模型共用）       │  ← 先耗盡
+│  含 Opus、Sonnet、Haiku 等全部模型            │
 └─────────────────────────────────────────────┘
-         ↓ 耗盡後自動切換
+         ↓ 耗盡後系統自動切換
 ┌─────────────────────────────────────────────┐
-│  限額 2：Sonnet only（專屬較高配額）         │  ← 仍可繼續用
+│  限額 2：Sonnet-only limit（獨立配額）        │  ← 仍可繼續
+│  匹配先前的 overall 額度                      │
 └─────────────────────────────────────────────┘
 ```
 
-這就是升級 Max 5x 後出現「**Sonnet only**」選項的原因——當全模型配額用完，Sonnet 仍有獨立的較高配額可繼續使用。
+overall 耗盡後，Claude Code 會自動進入「**Sonnet only**」狀態，使用**獨立的 Sonnet 配額**（不再扣 overall）。
+
+> **歷史脈絡**：2025-11-24 前，Max 方案是「overall + Opus cap」結構；Sonnet only 狀態仍扣 overall、僅降速。2025-11-24 [Anthropic 公告](https://www.anthropic.com/news/claude-max-plan-update)移除 Opus cap、改為 Sonnet 獨立限額（"Sonnet now has its own limit"）。
+>
+> ⚠️ **2026-04 注意**：官方公告與 Support docs 曾存在不一致（見 [claude-code#12487](https://github.com/anthropics/claude-code/issues/12487)，截至 2026-04 未獲官方回應）。實務上請以系統顯示的配額數字為準。
 
 ### 尖峰時段注意
 
