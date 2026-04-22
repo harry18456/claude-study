@@ -31,11 +31,18 @@ brew install --cask claude-code
 winget install Anthropic.ClaudeCode
 ```
 
-> **npm 安裝已 deprecated**（2026 年 1~2 月宣布），官方理由：Native Installer 更快、不需要 Node.js 依賴、支援背景自動更新。2026/03 另發生兩個獨立的 npm 安全事件（Anthropic source map 外洩 + Axios 供應鏈攻擊），事件在棄用之後，未直接導致棄用決定，但進一步說明了遷移的必要性。
+> **npm 路徑仍可用，但 Native Installer 是官方推薦**。2026 年 1–2 月公告將 npm 從「推薦安裝方式」降級，理由：Native Installer 更快、不需 Node.js 依賴、支援背景自動更新。2026/03 另發生兩個獨立的 npm 安全事件（Anthropic source map 外洩 + Axios 供應鏈攻擊），發生時間在降級之後，並未直接導致降級決定，但進一步說明了遷移的必要性。
 >
 > 詳細背景見下方「npm 外洩事件始末」段落。
 >
-> 若仍在用 npm 版本，可執行以下指令遷移：
+> **v2.1.113（2026 年 4 月）的重要變化：** 即便走 `npm install -g @anthropic-ai/claude-code`，底層也已改為**每平台原生二進位**（透過 `@anthropic-ai/claude-code-<platform>-<arch>` optional dependency + postinstall 腳本連結到 `bin/`），不再分發 JavaScript。結果：
+>
+> - 啟動延遲明顯縮短——跳過 Node.js runtime 與 JIT 預熱
+> - 安裝完不再需要 Node.js 執行（`node` 可從 PATH 移除仍能跑 `claude`）
+> - Node.js 版本衝突問題消失
+> - 指令與使用者流程完全不變
+>
+> 若仍想遷移到 Native Installer：
 > ```bash
 > curl -fsSL https://claude.ai/install.sh | bash
 > npm uninstall -g @anthropic-ai/claude-code
@@ -45,6 +52,21 @@ winget install Anthropic.ClaudeCode
 # 確認安裝
 claude --version
 ```
+
+### npm 安裝的邊緣狀況（v2.1.113 之後）
+
+原生二進位靠 `postinstall` 與 optional dependency 分發，以下情境可能讓安裝看似成功但實際壞掉：
+
+| 情境 | 症狀 | 解法 |
+|------|------|------|
+| **Bun global install** | `bun install -g` 成功，但 `claude` 指令空包或報錯 | Bun 預設阻擋 lifecycle scripts；改用 `npm`、`pnpm`，或直接用 Native Installer |
+| **`npm install --ignore-scripts`** | 二進位沒連結，`claude` 找不到檔案 | 該 flag 會跳過 postinstall；企業鏡像 / CI 場景請取消該 flag 或改用 Native Installer |
+| **`npm install --omit=optional`** | Optional dep 沒裝，找不到對應平台的二進位 | 移除 `--omit=optional` 或改用 Native Installer |
+| **Termux / Android** | v2.1.113+ 無法執行（需 glibc） | Pin 最後的 JS 版本 `npm install -g @anthropic-ai/claude-code@2.1.112`，或等官方補 musl / Android 版 |
+| **ARM64 Raspberry Pi** | Native Installer 回報成功但實際沒放檔 | 追蹤 [issue #20490](https://github.com/anthropics/claude-code/issues/20490)；暫時用 npm 的 `@2.1.112` 回退 |
+| **公司內部 npm proxy** | Optional dep 被 proxy 過濾掉 | 檢查 proxy 是否同步 `@anthropic-ai/claude-code-*` 系列的平台專屬套件 |
+
+**快速診斷：** 安裝後若 `claude --version` 無回應，先執行 `claude doctor`，它會檢查二進位是否正確連結。
 
 ### 認證
 
