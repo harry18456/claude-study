@@ -84,3 +84,27 @@ code:
   - API.md
   - SKILL.md
 -->
+
+---
+### Requirement: Document Live Artifacts feature
+
+03_COWORK.md SHALL document the Live Artifacts feature released on 2026-04-20, including its differences from traditional Artifacts, supported connectors via MCP, subscription-plan coverage (Pro / Max / Team / Enterprise on Claude web and desktop), the dedicated Live Artifacts tab with version history, and platform limitations (web / Desktop first-class, mobile limited).
+
+#### Scenario: Reader understands Live Artifacts capability
+
+- **WHEN** a reader reaches the Live Artifacts section of 03_COWORK.md
+- **THEN** they SHALL understand that Live Artifacts are persistent dashboards/trackers that auto-refresh via MCP connectors, are saved in a dedicated tab with version history, work on Claude web and Desktop, and require a paid plan
+
+#### Scenario: Reader differentiates Live Artifacts from traditional Artifacts
+
+- **WHEN** a reader compares Artifacts versus Live Artifacts
+- **THEN** they SHALL understand that traditional Artifacts are static snapshots tied to a single conversation, while Live Artifacts are connector-backed, cross-session reusable, and refresh on every open
+
+<!-- @trace
+source: ad-hoc-update
+updated: 2026-04-23
+reason: Anthropic announced Live Artifacts on 2026-04-20; section added to 03_COWORK.md
+code:
+  - 03_COWORK.md
+  - verify/03_COWORK.md
+-->

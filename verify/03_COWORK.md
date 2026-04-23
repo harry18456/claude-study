@@ -71,3 +71,46 @@
 - 任務類型舉例（例：「整理 Downloads 資料夾」）
 
 後續讀者（ChatGPT / Gemini）若發現本報告漏掉的聲明，屬預期行為 — 本驗證不保證 100% 覆蓋。
+
+---
+
+## Addendum: 2026-04-23 — Live Artifacts 段落新增
+
+### Header
+
+| Field | Value |
+|---|---|
+| Addendum date | 2026-04-23 |
+| Scope | 03_COWORK.md 新增「Live Artifacts」章節（位於「排程任務」之後） |
+| Trigger | Anthropic 於 2026-04-20 官方發布 Live Artifacts |
+| Verifier | Claude Opus 4.7 |
+
+### Claims Table
+
+| # | Claim (excerpt) | Type | Result | Source / Note |
+|---|---|---|---|---|
+| A1 | Live Artifacts 於 **2026-04-20** 由 Anthropic 官方發布 | date | ✅ Verified | [Claude 官方 X 公告](https://x.com/claudeai/status/2046328619249684989) 與 [blockchain.news 2026 分析報導](https://blockchain.news/ainews/claude-cowork-update-live-artifacts-for-real-time-dashboards-and-trackers-2026-analysis)、[productmarketfit.tech playbook](https://www.productmarketfit.tech/p/artifacts-in-claude-cowork-the-playbook) 等多家媒體同日／次日報導 |
+| A2 | 支援方案：**Pro / Max / Team / Enterprise**（web 與 Desktop） | product-spec | ✅ Verified | [Claude Help Center — What are artifacts](https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them)："MCP integration for artifacts and persistent storage for artifacts are available on Pro, Max, Team, and Enterprise plans on Claude web and desktop" |
+| A3 | Live Artifacts 每次開啟**自動重新連線拉最新資料**刷新 | product-spec | ✅ Verified | 官方公告原文："Open one any time and it refreshes with current data"；Threads 引用版："auto-refresh with real data whenever you open them" |
+| A4 | 存在獨立 **Live Artifacts 分頁**、保留**版本歷史** | product-spec | ✅ Verified | Threads 引用官方文案："saved in a Live Artifacts tab with version history, pick up anytime, from any session" |
+| A5 | 透過 **MCP connectors** 串接外部服務 | product-spec | ✅ Verified | [Claude Help Center](https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them)："Artifacts can connect to external services through the Model Context Protocol (MCP)"；[pluginsforcowork.com](https://pluginsforcowork.com/guides/cowork-connectors/) 列出 38+ 工具 |
+| A6 | 原生支援 **Gmail、Google Calendar、Google Drive、Slack、Notion、HubSpot、Jira、Salesforce、Snowflake、Asana** | product-spec | ✅ Verified | 以上均在 Cowork connectors 清單或 Claude Help Center「Asana, Google Calendar, and Slack」範例中出現 |
+| A7 | **Power BI、BigQuery、內部系統**須透過第三方 MCP connector 擴充 | product-spec | ✅ Verified | 多次搜尋均未在 Anthropic 官方原生連接器清單中出現 Power BI / BigQuery；使用者文案原稱「支援 Power BI」，本次調整為「第三方 MCP connector 擴充」以符實際 |
+| A8 | **手機端功能有限**（web 與 Desktop 支援完整） | product-spec | ⚠️ Needs ongoing verification | 官方明示 Artifacts persistent storage 與 MCP integration 在 web 與 desktop 可用；部分來源（Claude Help Center 其他頁）提及「Claude mobile app can now connect to fully interactive apps」但未具體化到 Live Artifacts 的版本歷史／刷新功能。用語已從使用者原稿「手機上還沒辦法用」放寬為「功能有限」以避免過度肯定。建議下一版加上官方 help center URL 精確化 |
+| A9 | Token 消耗會隨刷新次數與資料源數增加 | product-spec | 🔍 Unverifiable | 合理推論但 Anthropic 無公開量化數據；本版以中性敘述呈現，避免斷言「Pro 方案會碰天花板」 |
+
+### Addendum Counts
+
+| Marker | Count |
+|---|---|
+| ✅ Verified | 7 |
+| ⚠️ Needs ongoing verification | 1 |
+| ❌ Unsupported | 0 |
+| 🔍 Unverifiable | 1 |
+| **Total** | 9 |
+
+### Addendum Notes
+
+- 使用者原始社群貼文有兩處不精確（**Power BI 列為原生支援**、**「手機還沒辦法用」**），加入 `03_COWORK.md` 時已修正。
+- Anthropic 將 Live Artifacts 定位為既有 Artifacts 系統的連結器＋持久化延伸，在官方文件中未必以 "Live Artifacts" 為唯一名稱（同時出現 "persistent storage for artifacts"、"MCP-connected artifacts"）；社群與官方推文多以 "Live Artifacts" 通稱。
+- 本 addendum **不重新驗證** 2026-04-22 主報告的 20 條既有 claims，僅針對新增段落。

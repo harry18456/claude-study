@@ -21,6 +21,8 @@
 | **合計（全量）** |  | **122** | **38** | **3** | **40** | **203** | — |
 
 > **注意**：04_CODE.md 為 scoped 驗證，未覆蓋 Chrome / Figma MCP / Hooks / Routines / Plugins / Desktop / /batch 詳解 / Subagent 等段落；合計數字不含這些未驗證段落。實際硬性聲明總數預估 250+。
+>
+> **另注**：03_COWORK.md 於 2026-04-23 新增 Live Artifacts 段落後做了增補驗證（+9 條聲明，7 ✅ / 1 ⚠️ / 1 🔍），詳見本檔結尾的 Addendum 區塊與 `verify/03_COWORK.md` 的 Addendum 段落。上表統計仍為 2026-04-22 主驗證結果，未併入 addendum。
 
 ## 跨文件最關鍵 Top 10 修正清單
 
@@ -82,3 +84,23 @@
 - Verifier self-bias mitigation 規則（無外部 URL 即 ❌）
 
 未來可由同一人、不同模型、或 ChatGPT / Gemini 等他家模型，依此流程做第二輪交叉驗證，得到**可比較的結果**。
+
+---
+
+## Addendum: 2026-04-23 — 03_COWORK.md Live Artifacts 段落
+
+- **觸發原因**：Anthropic 於 2026-04-20 官方發布 Live Artifacts 功能；03_COWORK.md 新增對應章節。
+- **範圍**：僅新增段落，不重新驗證 2026-04-22 主報告的 20 條既有 claims。
+- **增補聲明數**：9 條（7 ✅ / 1 ⚠️ / 0 ❌ / 1 🔍）
+- **關鍵事實**：
+  - Live Artifacts 為 Cowork 內連接器驅動的**持久化**產出物，開啟即刷新 — 多家媒體與 Claude Help Center 確認
+  - 支援 **Pro / Max / Team / Enterprise** 方案於 **Claude web 與 Desktop**
+  - 連接器透過 **MCP** 架構；原生覆蓋 Gmail / Google Calendar / Slack / Notion / HubSpot / Jira / Salesforce / Snowflake / Asana 等 38+ 工具
+- **從使用者原稿修正的兩處**：
+  1. **「支援 Power BI」** → 改為「Power BI / BigQuery / 內部系統可透過**第三方 MCP connector** 擴充」；Anthropic 原生清單未列 Power BI
+  2. **「手機上還沒辦法用」** → 改為「手機端功能有限」；官方明示 web 與 desktop 支援完整，但未完全排除手機可用性
+- **連動更新**：
+  - `openspec/specs/cowork-collaboration/spec.md` 新增 `Requirement: Document Live Artifacts feature`（附兩個 Scenario）
+  - `verify/03_COWORK.md` 結尾新增 Addendum 區塊，列 9 條聲明與查證結果
+
+> 下一輪主驗證時可將本 addendum 併入 03_COWORK.md 的主 claims table 重新彙總。
